@@ -1,0 +1,180 @@
+﻿E:\VS2017-RC\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (FRS-V.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  Game.cpp
+e:\vsproject\frsml\frs-v\src\vulkan\window.h(34): warning C4251: 'FRS::Window::sharedWindow': class 'std::shared_ptr<FRS::Window>' needs to have dll-interface to be used by clients of struct 'FRS::Window'
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(34): note: see declaration of 'std::shared_ptr<FRS::Window>'
+e:\vsproject\frsml\frs-v\src\vulkan\window.h(77): warning C4251: 'FRS::Window::title': class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' needs to have dll-interface to be used by clients of struct 'FRS::Window'
+  e:\vs2017-rc\vc\tools\msvc\14.10.25017\include\xstring(3997): note: see declaration of 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'
+e:\vsproject\frsml\frsml\include\frsml(19): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(16): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frsml\include\frsml(45): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(45): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(47): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(47): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(49): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(49): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(50): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(50): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(51): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(51): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(52): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(52): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(53): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(53): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(54): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(54): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(64): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(64): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(65): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(65): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(67): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(67): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(68): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(68): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(69): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(69): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(70): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(70): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(71): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(71): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(72): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(72): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(73): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(73): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(74): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(74): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(75): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(75): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(76): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(76): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(77): warning C4838: conversion from 'double' to 'const float' requires a narrowing conversion
+e:\vsproject\frsml\frsml\include\frsml(77): warning C4305: 'initializing': truncation from 'double' to 'const float'
+e:\vsproject\frsml\frsml\include\frsml(1018): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(10): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\frsml(19): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\swapchain.h(36): warning C4251: 'FRS::Swapchain::images': class 'std::vector<VkImage,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Swapchain'
+          with
+          [
+              _Ty=VkImage
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\swapchain.h(36): note: see declaration of 'std::vector<VkImage,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=VkImage
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\swapchain.h(37): warning C4251: 'FRS::Swapchain::imageViews': class 'std::vector<VkImageView,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Swapchain'
+          with
+          [
+              _Ty=VkImageView
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\swapchain.h(37): note: see declaration of 'std::vector<VkImageView,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=VkImageView
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(73): warning C4251: 'FRS::Chunk::mBlocks': class 'std::vector<FRS::Block,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Chunk'
+          with
+          [
+              _Ty=FRS::Block
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(73): note: see declaration of 'std::vector<FRS::Block,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=FRS::Block
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(142): warning C4251: 'FRS::DeviceAllocator::mChunks': class 'std::vector<FRS::Chunk,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::DeviceAllocator'
+          with
+          [
+              _Ty=FRS::Chunk
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(142): note: see declaration of 'std::vector<FRS::Chunk,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=FRS::Chunk
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(158): warning C4251: 'FRS::Counter::count': class 'std::shared_ptr<uint32_t>' needs to have dll-interface to be used by clients of class 'FRS::Counter'
+  e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(158): note: see declaration of 'std::shared_ptr<uint32_t>'
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(175): warning C4251: 'FRS::Resource::mDevice': class 'std::shared_ptr<FRS::Device>' needs to have dll-interface to be used by clients of class 'FRS::Resource'
+  e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(175): note: see declaration of 'std::shared_ptr<FRS::Device>'
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(333): warning C4251: 'FRS::Buffer::attributeDescriptions': class 'std::vector<VkVertexInputAttributeDescription,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Buffer'
+          with
+          [
+              _Ty=VkVertexInputAttributeDescription
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(291): note: see declaration of 'std::vector<VkVertexInputAttributeDescription,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=VkVertexInputAttributeDescription
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(234): warning C4244: '=': conversion from 'VkDeviceSize' to 'uint32_t', possible loss of data
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(236): warning C4244: '=': conversion from 'VkDeviceSize' to 'uint32_t', possible loss of data
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(245): warning C4244: '=': conversion from 'VkDeviceSize' to 'uint32_t', possible loss of data
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(246): warning C4244: '=': conversion from 'VkDeviceSize' to 'uint32_t', possible loss of data
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(257): warning C4553: '==': operator has no effect; did you intend '='?
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(259): warning C4553: '==': operator has no effect; did you intend '='?
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(261): warning C4553: '==': operator has no effect; did you intend '='?
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(262): warning C4553: '==': operator has no effect; did you intend '='?
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(263): warning C4553: '==': operator has no effect; did you intend '='?
+e:\vsproject\frsml\frs-v\src\vulkan\graphicpipeline.h(43): warning C4251: 'FRS::GraphicPipeline::buffers': class 'std::vector<FRS::Buffer,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::GraphicPipeline'
+          with
+          [
+              _Ty=FRS::Buffer
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\graphicpipeline.h(28): note: see declaration of 'std::vector<FRS::Buffer,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=FRS::Buffer
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\framebuffer.h(32): warning C4251: 'FRS::Framebuffers::frameBuffer': class 'std::vector<VkFramebuffer,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Framebuffers'
+          with
+          [
+              _Ty=VkFramebuffer
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\framebuffer.h(32): note: see declaration of 'std::vector<VkFramebuffer,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=VkFramebuffer
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\commander.h(200): warning C4251: 'FRS::Commander::commandBuffer': class 'std::vector<VkCommandBuffer,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Commander'
+          with
+          [
+              _Ty=VkCommandBuffer
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\commander.h(200): note: see declaration of 'std::vector<VkCommandBuffer,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=VkCommandBuffer
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\commander.h(202): warning C4251: 'FRS::Commander::realBuffers': class 'std::vector<FRS::Buffer,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Commander'
+          with
+          [
+              _Ty=FRS::Buffer
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\graphicpipeline.h(28): note: see declaration of 'std::vector<FRS::Buffer,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=FRS::Buffer
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\commander.h(202): warning C4251: 'FRS::Commander::transferBuffers': class 'std::vector<FRS::Buffer,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::Commander'
+          with
+          [
+              _Ty=FRS::Buffer
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\graphicpipeline.h(28): note: see declaration of 'std::vector<FRS::Buffer,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=FRS::Buffer
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\contentmanager.h(71): warning C4251: 'FRS::ContentManager::shaders': class 'std::vector<FRS::Shader,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'FRS::ContentManager'
+          with
+          [
+              _Ty=FRS::Shader
+          ]
+  e:\vsproject\frsml\frs-v\src\vulkan\contentmanager.h(71): note: see declaration of 'std::vector<FRS::Shader,std::allocator<_Ty>>'
+          with
+          [
+              _Ty=FRS::Shader
+          ]
+e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(112): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(265): warning C4172: returning address of local variable or temporary: nBuffer
+  FRS-V.vcxproj -> E:\VSProject\FRSML\x64\Debug\FRS.dll
+  FRS-V.vcxproj -> E:\VSProject\FRSML\x64\Debug\FRS.pdb (Partial PDB)
