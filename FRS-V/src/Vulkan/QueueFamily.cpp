@@ -3,7 +3,7 @@
 namespace FRS {
 
 	QueueFamilyIndex findAllQueueFamily(VkPhysicalDevice device,
-		FRS::Window* window) {
+		FRS::Window window) {
 
 		QueueFamilyIndex index;
 
@@ -33,7 +33,7 @@ namespace FRS {
 		for (auto& queueProperty : queueProperties) {
 			VkBool32 presentSupport = false;
 
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, window->surface, &presentSupport);
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, window.surface, &presentSupport);
 
 			if (queueProperty.queueCount > 0 && presentSupport) {
 				index.presentFamily = i;

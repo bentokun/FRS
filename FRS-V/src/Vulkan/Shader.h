@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include <string>
 
@@ -36,6 +37,43 @@ namespace FRS {
 				shader.fragModule, nullptr);
 		}
 
+		struct UniformBinding {
+			VkDeviceSize dataArrayLength = 0;
+			Stage stage = UNDENTIFIED;
+		};
+
+		struct UniformSet {
+			UniformBinding UniformBindings[25];
+			void*          BindingDatas[25]{ nullptr };
+			uint32_t       BindingSize[25] {0};
+
+		} UniformSets[25];
+
+		struct VertexBinding {
+
+			struct Loc {
+				VkFormat Format = { VK_FORMAT_UNDEFINED };
+				VkDeviceSize Offset;
+			} Location[25];
+	
+			uint32_t Stride;
+			VkVertexInputRate InputRate;
+		};
+
+		struct VertexInput {
+			VertexBinding VertexBindings[25]{};
+			void*         BindingDatas[25]{ nullptr };
+			uint32_t      BindingSize[25]{ 0 };
+
+			uint32_t numbersBindings;
+			uint32_t numberDatas;
+		} VertexInput;
+
+		struct IndexInput {
+			void* IndexDatas[25]{ nullptr };
+			uint32_t IndexSize[25]{ 0 };
+		} IndexInput;
+
 		bool operator == (Shader shader) {
 
 			if (vertexModule == shader.vertexModule &&
@@ -62,5 +100,8 @@ namespace FRS {
 		VkShaderModule vertexModule, fragModule;
 	};
 
+
+	TFAPI void GetShaderBind(Shader shader, std::vector<VkVertexInputAttributeDescription>& attributeDes,
+		std::vector<VkVertexInputBindingDescription>& bindingsDes);
 
 }

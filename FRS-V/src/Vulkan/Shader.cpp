@@ -38,5 +38,45 @@ namespace FRS {
 
 	}
 
+	void GetShaderBind(Shader shader, std::vector<VkVertexInputAttributeDescription>& attributeDes,
+		std::vector<VkVertexInputBindingDescription>& bindingsDes) {
+
+		std::vector<VkVertexInputAttributeDescription> attributesDesc;
+		std::vector<VkVertexInputBindingDescription> bindingDes;
+
+		for (uint32_t i = 0; i < 25; i++) {
+			if (shader.VertexInput.VertexBindings[i].Location[0].Format == VK_FORMAT_UNDEFINED) {
+				break;
+			}
+			else {
+
+				VkVertexInputBindingDescription inputDes;
+				inputDes.binding = i;
+				inputDes.inputRate = shader.VertexInput.VertexBindings[i].InputRate;
+				inputDes.stride = shader.VertexInput.VertexBindings[i].Stride;
+
+				bindingDes.push_back(inputDes);
+
+				for (uint32_t j = 0; j < 25; j++) {
+					if (shader.VertexInput.VertexBindings[i].Location[j].Format == VK_FORMAT_UNDEFINED) {
+						break;
+					}
+					else {
+						VkVertexInputAttributeDescription attributeDes = {};
+						attributeDes.offset = shader.VertexInput.VertexBindings[i].Location[j].Offset;
+						attributeDes.location = j;
+						attributeDes.binding = i;
+						attributeDes.format = shader.VertexInput.VertexBindings[i].Location[j].Format;
+
+						attributesDesc.push_back(attributeDes);
+
+					}
+				}
+			}
+		}
+
+		attributeDes = attributesDesc;
+		bindingsDes = bindingDes;
+	}
 
 }

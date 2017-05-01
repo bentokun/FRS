@@ -11,7 +11,14 @@ namespace FRS {
 
 		WNDCLASSEX classEx;
 		const char* ctitle = title.c_str();
-		LPCWSTR str = LPCWSTR(ctitle);
+
+		int len;
+		int slength = (int)title.length() + 1;
+		len = MultiByteToWideChar(CP_ACP, 0, title.c_str(), slength, 0, 0);
+		wchar_t* buf = new wchar_t[len];
+		MultiByteToWideChar(CP_ACP, 0, title.c_str(), slength, buf, len);
+		std::wstring r(buf);
+		delete[] buf;
 
 		classEx.cbSize = sizeof(WNDCLASSEX);
 		classEx.style = CS_HREDRAW | CS_VREDRAW;
@@ -32,7 +39,7 @@ namespace FRS {
 		}
 
 		long wndStyle = WS_OVERLAPPEDWINDOW;
-		long dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+		long dwExStyle = WS_EX_APPWINDOW;
 
 		FRSshort posX = originX; FRSshort posY = originY;
 		FRSshort widthN = widthz; FRSshort heightN = heightz;
@@ -42,6 +49,9 @@ namespace FRS {
 		}
 
 		switch (windowState) {
+		case WINDOWED:
+			break;
+
 		case FULLSCREEN:
 			wndStyle = WS_POPUP;
 			dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
@@ -72,6 +82,7 @@ namespace FRS {
 			break;
 
 		default:
+			throw std::runtime_error("What window state is this inmate?");
 			break;
 		}
 
@@ -81,11 +92,16 @@ namespace FRS {
 		this->originY = posY;
 		this->title = ctitle;
 
-		this->mainWindow = CreateWindowExW(NULL,
-			L"OPENGL", L"OPENGL",
-			wndStyle | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
-			posX, posY, widthN, heightN, NULL,
-			NULL, GetModuleHandleW(NULL), nullptr);
+		RECT rect = { 0,0,width, height };
+		AdjustWindowRectEx(&rect, wndStyle, FALSE, dwExStyle);
+		width = rect.right - rect.left;
+		height = rect.bottom - rect.top;
+		
+		this->mainWindow = CreateWindowExW(dwExStyle,
+			L"OPENGL", r.c_str(),
+			wndStyle |WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+			posX, posY, width, height, NULL,
+			NULL, GetModuleHandleW(NULL), NULL);
 
 		if (mainWindow == NULL) {
 			throw std::runtime_error("cant create window");
@@ -115,10 +131,7 @@ namespace FRS {
 
 		FRS_ASSERT(result != VK_SUCCESS, "Failed create window surface!");
 
-		if (SetPropW(mainWindow, L"FRSEngine", (HANDLE)this)) {
-			std::cout << "Set Prop success" << std::endl;
-		}
-
+		SetPropW(mainWindow, L"FRSEngine", (HANDLE)this);
 		ShouldQuit = false;
 }
 
@@ -166,9 +179,10 @@ namespace FRS {
 
 			case WM_SIZE:
 			{
+
 				if (window->eventStruct.resizeFunc) {
 					RECT windowRect;
-					GetWindowRect(hwnd, &windowRect);
+					GetClientRect(hwnd, &windowRect);
 					window->width = windowRect.right - windowRect.left, windowRect.bottom;
 					window->height = windowRect.bottom - windowRect.top;
 					window->eventStruct.resizeFunc(windowRect.right - windowRect.left, windowRect.bottom- windowRect.top);
@@ -195,7 +209,7 @@ namespace FRS {
 	//Set pixel format
 	//CreateContext
 	//Make context
-	void FRSPollEvents() {
+	void PollEvents() {
 
 		MSG msg;
 

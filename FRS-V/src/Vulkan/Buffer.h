@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include "Rules.h"
 #include "Assert.h"
@@ -18,7 +19,6 @@
 #endif
 
 namespace FRS {
-
 
 	struct TFKAPI Block {
 
@@ -69,7 +69,7 @@ namespace FRS {
 		VkDeviceSize mSize = VK_NULL_HANDLE;
 		VkDeviceMemory mMem = VK_NULL_HANDLE;
 		int mMemoryTypeIndex;
-		void *mPtr = nullptr;
+		void *dataPointer = nullptr;
 		std::vector<Block> mBlocks;
 	};
 
@@ -78,6 +78,14 @@ namespace FRS {
 
 		ChunkAllocator() = default;
 		ChunkAllocator(Device &device, VkDeviceSize size);
+
+		friend void CreateChunkAllocator(ChunkAllocator *allocator,
+			Device device, VkDeviceSize size) {
+
+			allocator->mDevice = device;
+			allocator->mSize = size;
+
+		}
 
 		Chunk allocate(VkDeviceSize size,
 			int memType);
@@ -115,6 +123,9 @@ namespace FRS {
 		DeviceAllocator() {};
 		DeviceAllocator(Device device, VkDeviceSize size);
 
+		friend void CreateDeviceAllocator(DeviceAllocator *allocator,
+			Device device, VkDeviceSize size);
+
 		Block allocate(VkDeviceSize size, VkDeviceSize alignment, int memType);
 		void deallocate(Block &block);
 
@@ -131,11 +142,7 @@ namespace FRS {
 			return false;
 		}
 
-		void DestroyDeviceAllocator() {
-			for (auto &mChunk : mChunks) {
-				DestroyChunk(&mChunk);
-			}
-		}
+		friend void DestroyDeviceAllocator(DeviceAllocator allocator);
 
 	private:
 		ChunkAllocator mChunkAlloc{};
@@ -167,17 +174,19 @@ namespace FRS {
 		Resource &operator =(Resource &&resource) = default;
 		Resource &operator =(Resource const &resource) = default;
 
-		Device &getDevice() const {
-			return *(mDevice);
+		Device &getDevice() {
+			return (mDevice);
 		}
 
 	protected:
-		std::shared_ptr<Device> mDevice;
+		Device mDevice;
 	};
 
 	class TFKAPI Buffer: public Resource {
 	public:
-		Buffer() {};
+		Buffer() {
+			directData = nullptr;
+		};
 
 		//Vertex of uniform?
 		friend void CreateBuffer(Buffer &buffer, Device &device, VkBufferUsageFlags usage,
@@ -187,19 +196,18 @@ namespace FRS {
 
 			this->buffer = buffer.buffer;
 			
-			bindingDes = buffer.bindingDes;
-
-			for (auto& attribute : buffer.attributeDescriptions) {
-				attributeDescriptions.push_back(attribute);
-			}
+			dataPointer = buffer.dataPointer; 
 
 			mAllocator = buffer.mAllocator;
 			mDevice = buffer.mDevice;
 			mSize = buffer.mSize;
 			mUsageFlag = buffer.mUsageFlag;
-			mPtr = buffer.mPtr; 
+			dataPointer = buffer.dataPointer; 
 			mMemReq = buffer.mMemReq;
 			mMemProp = buffer.mMemProp;
+			directData = buffer.directData;
+			transferSize = buffer.transferSize;
+			setUniformLayoutBinding = buffer.setUniformLayoutBinding;
 
 			block = buffer.block;
 			deviceLocal = buffer.deviceLocal;	
@@ -210,60 +218,71 @@ namespace FRS {
 
 			this->buffer = buffer.buffer;
 
-			bindingDes = buffer.bindingDes;
-
-			for (auto& attribute : buffer.attributeDescriptions) {
-				attributeDescriptions.push_back(attribute);
-			}
+			dataPointer = buffer.dataPointer;
 
 			mAllocator = buffer.mAllocator;
 			mDevice = buffer.mDevice;
 			mSize = buffer.mSize;
 			mUsageFlag = buffer.mUsageFlag;
-			mPtr = buffer.mPtr;
+			dataPointer = dataPointer;
 			mMemReq = buffer.mMemReq;
 			mMemProp = buffer.mMemProp;
 
 			block = buffer.block;
 			deviceLocal = buffer.deviceLocal;
+			setUniformLayoutBinding = buffer.setUniformLayoutBinding;
+			poolSize = buffer.poolSize;
 
+			directData = buffer.directData;
+			transferSize = buffer.transferSize;
 		}
 
+		/*
 		void Bind(VkVertexInputRate rate, VkDeviceSize binding,
-			VkDeviceSize stride) {
-			bindingDes.binding = binding;
-			bindingDes.inputRate = rate;
-			bindingDes.stride = stride;
-		}
+			VkDeviceSize stride);
 
 		void Attribute(
 			VkDeviceSize location,
 			VkDeviceSize offset,
-			VkFormat format) {
+			VkFormat format);
+		
 
-			VkVertexInputAttributeDescription des = {};
-			des.offset = offset;
-			des.location = location;
-			des.binding = bindingDes.binding;
-			des.format = format;
+		void LayoutUniform(VkDeviceSize binding, VkDeviceSize dataArrayLength,
+			Stage stage) {
 
-			attributeDescriptions.push_back(des);
+			VkDescriptorSetLayoutBinding layout = {};
+
+			layout.binding = binding;
+			layout.descriptorCount = dataArrayLength;
+			layout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			layout.stageFlags = stage;
+			layout.pImmutableSamplers = nullptr;
+
+			this->setUniformLayoutBinding = layout;
+
+			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSize.descriptorCount = dataArrayLength;
 
 		}
-		
+		*/
 		Buffer &operator =(Buffer const &tBuffer) {
 			Buffer nBuffer;
 
-			nBuffer.mSize == tBuffer.mSize;
-			nBuffer.mAllocator == tBuffer.mAllocator;
-			nBuffer.mPtr == tBuffer.mPtr;
-			nBuffer.block == tBuffer.block;
-			nBuffer.mUsageFlag == tBuffer.mUsageFlag;
-			nBuffer.deviceLocal == tBuffer.deviceLocal;
-			nBuffer.buffer == tBuffer.buffer;
-				
+			nBuffer.mSize = tBuffer.mSize;
+			nBuffer.mAllocator = tBuffer.mAllocator;
+			nBuffer.dataPointer = tBuffer.dataPointer;
+			nBuffer.block = tBuffer.block;
+			nBuffer.mUsageFlag = tBuffer.mUsageFlag;
+			nBuffer.deviceLocal = tBuffer.deviceLocal;
+			nBuffer.buffer = tBuffer.buffer;
+			nBuffer.directData = tBuffer.directData;
+			nBuffer.transferSize = tBuffer.transferSize;
+			nBuffer.setUniformLayoutBinding = tBuffer.setUniformLayoutBinding;
+			nBuffer.poolSize = tBuffer.poolSize;
+
 			return nBuffer;
 		}
+		
 
 		VkDeviceSize getSize() const {
 			return mSize;
@@ -276,18 +295,14 @@ namespace FRS {
 		bool isDeviceLocal() const {
 			return deviceLocal;
 		}
+	
+		void* dataPointer = nullptr;
 
-		void *getPtr() {
-			return mPtr;
-		}
-		
 		~Buffer() {};
+		
+		friend void DestroyBuffer(Device device, Buffer* Tbuffer);
 
-		friend void DestroyBuffer(Device& device, Buffer* Tbuffer) {
-			vkDestroyBuffer(device.logicalDevice, Tbuffer->buffer,
-				nullptr);
-		}
-
+		/*
 		std::vector<VkVertexInputAttributeDescription>& GetAttributeDescriptions() {
 			return attributeDescriptions;
 		}
@@ -295,17 +310,17 @@ namespace FRS {
 		VkVertexInputBindingDescription GetBindingDescriptions() {
 			return bindingDes;
 		}
+		*/
+		VkDescriptorSetLayoutBinding GetUniformDescriptorSetLayoutBinding() {
+			return setUniformLayoutBinding;
+		}
 
 		VkBuffer buffer;
 
 		bool operator == (Buffer& buff) {
+
 			if (buff.buffer == buffer 
-				&& buff.block == block
-				&& buff.mUsageFlag == mUsageFlag
-				&& buff.mAllocator == mAllocator
-				&& buff.mSize == mSize
-				&& deviceLocal == buff.deviceLocal
-				&& mPtr == buff.mPtr) {
+				&& buff.block == block) {
 				return true;
 			}
 
@@ -315,6 +330,14 @@ namespace FRS {
 		Block &GetBlock() {
 			return block;
 		}
+
+		uint32_t offset = 0;
+		uint32_t transferSize = 0;
+
+		VkDescriptorPoolSize poolSize {};
+		VkDescriptorSetLayoutBinding setUniformLayoutBinding{};
+
+		void* directData = nullptr;
 
 	private:
 
@@ -328,10 +351,8 @@ namespace FRS {
 		VkPhysicalDeviceMemoryProperties mMemProp{};
 		
 		bool deviceLocal;
-		void* mPtr = nullptr;
+
 	
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-		VkVertexInputBindingDescription bindingDes = {};
 
 	};
 

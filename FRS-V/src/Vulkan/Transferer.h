@@ -17,8 +17,4 @@ namespace FRS {
 		virtual void Notify() = 0;
 	};
 
-	void A() {
-		std::ifstream a("vert.spv");
-	}
-
 }

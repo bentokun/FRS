@@ -1,8 +1,14 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include <functional>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
+#include "../Img/DDS.h"
+#include "../Input/Controller.h"
+#include "../../Time.h"
 #include "Window.h"
 #include "Device.h"
 #include "VKExtensions.h"
@@ -25,6 +31,15 @@ typedef VkComponentSwizzle FRSImageComponent;
 
 namespace FRS {
 
+
+	struct UniformBufferObject {
+		FRSML::mat4 model, view, proj;
+	};
+
+	struct Color {
+		float sinTime;
+	};
+
 	//Base class
 	//Available component:
 	//	- A window
@@ -37,7 +52,8 @@ namespace FRS {
 	public:
 
 		Game() {};
-		Game(std::string appName, bool debugMessageEnabled);
+		Game(std::string appName, bool debugMessageEnabled,
+			FRSWindowState state);
 
 		~Game();
 
@@ -51,14 +67,11 @@ namespace FRS {
 		void Unload();
 		void Recreate();
 		void ResizingHandler(int width, int height);
+		void InputHandler(int code, FRSKeyState state);
 
-		void CreateGameDevice(Device* device, Window window);
 		void DisableConsoleCallback();
-		void DestroySwapChain(Device device, Swapchain swapChain);
 		
 		FRS_STATE EnabledConsoleCallback(PFN_vkDebugReportCallbackEXT func);
-		FRS_STATE CreateSwapChain(Swapchain* swapChain, Device* device, 
-			FRSImageComponent rbgacomponent[4], Window* window);
 
 	private:
 
@@ -66,8 +79,17 @@ namespace FRS {
 
 		bool quit;
 
-		Buffer buffer1{ };
-		Window window;
+		UniformBufferObject ubo{};
+		Color color{};
+		Window window{};
+		float frames;
+		std::chrono::time_point<std::chrono::steady_clock>
+			lTime{};
+
+		std::chrono::duration<float> durationSec{};
+
+		uint32_t frame = 0;
+		Time time{};
 		DeviceAllocator allocator;
 
 		VkInstance instance = VK_NULL_HANDLE;
@@ -75,14 +97,19 @@ namespace FRS {
 		ContentManager manager;
 		Shader shader;
 
+		FRSWindowState state{};
+
+		Controller controller{};
+
 		Device device;
 		static FRSDebug_CallbackFunc callbackFunc;
 		Reporter reporter = VK_NULL_HANDLE;
 		Swapchain swapChain;
 
-		GraphicPipeline graphPipeline;
-		Commander commander;
+		GraphicPipeline graphPipeline{};
+		Commander commander{};
 
+		uint32_t oldHeight, oldWidth;
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackFunc(
 			VkDebugReportFlagsEXT flags,
@@ -94,7 +121,7 @@ namespace FRS {
 			const char* msg,
 			void* userData) {
 
-			std::cout<<msg<<std::endl;
+			std::cout<<"Vulkan: "<<msg<<std::endl;
 			return VK_FALSE;
 		}
 

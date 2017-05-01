@@ -73,7 +73,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>E:\VSProject\FRSML\glm;E:\1.0.42.1\shaderc\libshaderc\include\shaderc;E:\VSProject\FRSML\FRSML\include;E:\VulkanSDK\1.0.39.1\Include\vulkan;$(IncludePath)</IncludePath>
+    <IncludePath>E:\VSProject\FRSML\depency;E:\VSProject\FRSML\glm;E:\1.0.42.1\shaderc\libshaderc\include\shaderc;E:\VSProject\FRSML\FRSML\include;E:\VulkanSDK\1.0.39.1\Include\vulkan;$(IncludePath)</IncludePath>
     <LibraryPath>E:\VulkanSDK\1.0.39.1\Bin;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -95,7 +95,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -143,6 +143,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Img\DDS.h" />
+    <ClInclude Include="src\Input\Controller.h" />
+    <ClInclude Include="src\Vulkan\Texture.h" />
     <ClInclude Include="src\Vulkan\Commander.h" />
     <ClInclude Include="src\Vulkan\Assert.h" />
     <ClInclude Include="src\Vulkan\Buffer.h" />
@@ -159,8 +162,11 @@
     <ClInclude Include="src\Vulkan\Rules.h" />
     <ClInclude Include="src\Vulkan\Window.h" />
     <ClInclude Include="src\Vulkan\Transferer.h" />
+    <ClInclude Include="Time.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Img\DDS.cpp" />
+    <ClCompile Include="src\Input\Controller.cpp" />
     <ClCompile Include="src\Vulkan\Buffer.cpp" />
     <ClCompile Include="src\Vulkan\FRSCM_Reader\ShaderReader.cpp" />
     <ClCompile Include="src\Vulkan\Commander.cpp" />
@@ -174,6 +180,8 @@
     <ClCompile Include="src\Vulkan\GraphicPipeline.cpp" />
     <ClCompile Include="src\Vulkan\VkExtensions.cpp" />
     <ClCompile Include="src\Vulkan\Shader.cpp" />
+    <ClCompile Include="src\Vulkan\Texture.cpp" />
+    <ClCompile Include="Time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FRSML\FRSML.vcxproj">

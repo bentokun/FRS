@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include "Window.h"
 #include "VKExtensions.h"
@@ -18,7 +19,6 @@ namespace FRS {
 
 	public:
 
-
 		Device() {};
 		~Device() {};
 
@@ -28,7 +28,8 @@ namespace FRS {
 			this->index = device.index;
 		}
 
-		Device(VkInstance instance, Window* window, bool validationLayer);
+		Device(VkInstance instance, Window window, bool validationLayer);
+		friend void CreateDevice(Device* device, VkInstance instance, Window window, bool validationLayer);
 
 		bool operator == (Device para) {
 			if (physicalDevice == para.physicalDevice &&
@@ -47,6 +48,7 @@ namespace FRS {
 		uint32_t GetGraphicFamily();
 
 		friend void DestroyDevice(Device device);
+
 
 	private:
 

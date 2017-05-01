@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include <vector>
 #include <map>
@@ -27,6 +28,8 @@ namespace FRS {
 	TFAPI std::vector<std::string> vkInstanceExtensions();
 	TFAPI FRS_STATE vkCheckValidation();
 
+	TFAPI void CreateInstance(std::string appName, bool EnableValidation, VkInstance* instance);
+
 	TFAPI VkResult CreateDebugReportCallback(VkInstance instance,
 		const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
 		const VkAllocationCallbacks* pAllocator,
@@ -46,26 +49,17 @@ namespace FRS {
 		 VkDevice* logicalDevice,
 		 bool validationLayer);
 
-	TFAPI VkResult CreateWin32SurfaceKHR(VkInstance instance,
-		VkWin32SurfaceCreateInfoKHR* surfaceInfo,
-		VkAllocationCallbacks* callback,
-		VkSurfaceKHR* surface);
-
-	TFAPI FRS_STATE CreateSurface(FRS::Window* window, VkInstance instance);
-	TFAPI void CreateQueue(VkDevice device, VkPhysicalDevice physicalDevice,
-		FRS::Window& window,	VkQueue* graphicFam, VkQueue* presentFam);
-
 	TFAPI std::vector<std::string> GetDeviceExtensionSupport(VkPhysicalDevice device);
 	TFAPI FRS_STATE GetSwapChainSupport(VkPhysicalDevice device);
 
-	TFAPI VkSurfaceCapabilitiesKHR GetWindowSurfaceCapabilities(VkPhysicalDevice device, Window* window);
+	TFAPI VkSurfaceCapabilitiesKHR GetWindowSurfaceCapabilities(VkPhysicalDevice device, Window window);
 	
-	TFAPI VkExtent2D GetSuitableWindowExtent(VkPhysicalDevice device, Window* window);
-	TFAPI VkSurfaceFormatKHR GetSuitableWindowSurfaceFormat(VkPhysicalDevice device, Window* window);
+	TFAPI VkExtent2D GetSuitableWindowExtent(VkPhysicalDevice device, Window window);
+	TFAPI VkSurfaceFormatKHR GetSuitableWindowSurfaceFormat(VkPhysicalDevice device, Window window);
 
-	TFAPI VkPresentModeKHR GetSuitableWindowPresentMode(VkPhysicalDevice device, Window* window);
+	TFAPI VkPresentModeKHR GetSuitableWindowPresentMode(VkPhysicalDevice device, Window window);
 
-	TFAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window* window);
+	TFAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window window);
 
 	//Rate the score for a physical device
 	TFAPI int PhysicalDeviceScore(VkPhysicalDevice device);

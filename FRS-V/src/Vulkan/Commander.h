@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include "Rules.h"
 #include "Framebuffer.h"
@@ -27,6 +28,11 @@ namespace FRS {
 			Device device,
 			DeviceAllocator allocator);
 
+		friend void CreateCommander(Commander* commander, Swapchain swapChain,
+			GraphicPipeline pipeline,
+			Device device,
+			DeviceAllocator allocator);
+
 		void ReadDrawingCommand(std::function<void()> drawingFunc);
 
 		void Start();
@@ -36,144 +42,52 @@ namespace FRS {
 		void Render();
 		void Wait();
 
-		void SubmitData() {
-
-			VkSubmitInfo submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &transfererBuffer;
-
-			vkResetFences(device.logicalDevice, 1, &dataTransferFence);
-
-			VkResult result = vkQueueSubmit(graphicQueue, 1, &submitInfo, dataTransferFence);
-			
-			FRS_S_ASSERT(result != VK_SUCCESS);
+		void SubmitData(std::vector<VkCommandBuffer> buffers);
+		void WaitData();
 		
-		}
-
-		void WaitData() {
-
-			vkQueueWaitIdle(graphicQueue);
-
-			vkWaitForFences(device.logicalDevice, 1, &dataTransferFence,
-				true, (uint64_t)std::numeric_limits<uint64_t>::max);
-
-			vkResetFences(device.logicalDevice, 1, &dataTransferFence);
-
-			bufferIndex = 0;
-		}
-		
-		void SetData(Buffer buffer, VkDeviceSize offset,
-			VkDeviceSize size, void* data) {
-
-			uint32_t index;
-
-			for (uint32_t i = 0; i < realBuffers.size(); i++) {
-				if (realBuffers[i] == buffer) {
-					index = i;
-					break;
-				}
-			}
-
-			memcpy((transferBuffers)[index].getPtr(), data, size);
-			vkUnmapMemory(device.logicalDevice, transferBuffers[index].GetBlock().memory);
-
-			SetData((transferBuffers)[index], buffer, 0, offset, size);
-
-			bufferIndex++;
-		
-			if (bufferIndex == realBuffers.size()) {
-				SubmitData();
-				WaitData();
-			}
-		}
+		void SetStaticData(Buffer buffer, VkDeviceSize offset,
+			VkDeviceSize size, void* data);
 
 		void SetData(const Buffer& src, Buffer& dst,
 			VkDeviceSize offsetSrc,
 			VkDeviceSize offsetDst,
-			VkDeviceSize size) {
+			VkDeviceSize size);
 
-
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-			vkBeginCommandBuffer(transfererBuffer, &beginInfo);
-
-			VkBufferCopy copyRegion = {};
-			copyRegion.srcOffset = offsetSrc;
-			copyRegion.dstOffset = offsetDst;
-			copyRegion.size = size;
-
-			VkBufferMemoryBarrier barrier = { };
-			barrier.offset = offsetSrc;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.buffer = dst.buffer;
-			barrier.size = size;
-			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-
-
-			vkCmdCopyBuffer(transfererBuffer, src.buffer, dst.buffer, 1, &copyRegion);
-			vkCmdPipelineBarrier(transfererBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				0, 0, nullptr, 1, &barrier, 0, nullptr);
-
-
-			vkEndCommandBuffer(transfererBuffer);
-
-		}
-
-		friend void DestroyCommander(Commander commander) {
-
-			vkDestroyFence(commander.device.logicalDevice, commander.dataTransferFence,
-				nullptr);
-
-			vkDestroySemaphore(commander.device.logicalDevice, commander.imageSemaphore, nullptr);
-			vkDestroySemaphore(commander.device.logicalDevice, commander.rendererSemaphore, nullptr);
-
-			vkDestroyCommandPool(commander.device.logicalDevice, commander.commandPool, nullptr);
-			DestroyFramebuffer(&commander.buffers);
-		}
+		friend void DestroyCommander(Commander* commander);
 
 		void Draw(FRSint vertexCount,
 			FRSint instance,
 			FRSint firstVertex,
-			FRSint firstInstance) {
+			FRSint firstInstance);
 
-			vkCmdDraw(commandBuffer[currentBuffer],
-				vertexCount, instance, firstVertex,
-				firstInstance);
-		}
-
-		void DrawIndexed(FRSint indexCount,
-			FRSint instanceCount,
-			FRSint firstIndex,
-			FRSint vertexOffSet,
-			FRSint firstInstance) {
-
-			vkCmdDrawIndexed(commandBuffer[currentBuffer], indexCount,
-				instanceCount, firstIndex, vertexOffSet, firstInstance);
-		}
-
-		void BindVertexBuffers(uint32_t firstBinding, 
+		void BindVertexBuffers(uint32_t firstBinding,
 			uint32_t sizeBinding,
 			Buffer buffers[],
-		    VkDeviceSize offset[]) {
+		VkDeviceSize offset[]);
 
-			std::vector<VkBuffer> tbuffers;
-			
-			for (uint32_t i = 0; i < sizeBinding ;i++) {
-				tbuffers.push_back(buffers[i].buffer);
-			}
+		void BindIndexBuffers(Buffer buffer, VkDeviceSize offset,
+			VkIndexType index);
 
-			vkCmdBindVertexBuffers(commandBuffer[currentBuffer],
-				firstBinding, sizeBinding, tbuffers.data(), offset);
-		}
+		void DrawIndexed(uint32_t indexCount,
+			uint32_t instanceCount,
+			uint32_t firstIndex,
+			uint32_t vertexOffset,
+			uint32_t firstInstance);
 
+		void UpdateDescriptorSet(uint32_t numberDesWrite, VkWriteDescriptorSet* writer,
+			uint32_t numberDesCopier, VkCopyDescriptorSet* copier);
+
+		void BindDescriptorSet(VkPipelineBindPoint bindPoint,
+			uint32_t dynamicOffsetCount, uint32_t* dynamicOffset);
+
+		void SetIndexData(Buffer buffer, VkDeviceSize offset,
+			VkDeviceSize size, void* data);
+
+
+		void SetDataWithIndex(const Buffer& src, Buffer& dst,
+			VkDeviceSize offsetSrc,
+			VkDeviceSize offsetDst,
+			VkDeviceSize size);
 		//Set the color to clear
 		//Do before loop, in Draw
 		void Clear(uint16_t r = 0.0f,
@@ -181,33 +95,103 @@ namespace FRS {
 			uint16_t b = 0.0f,
 			uint16_t a = 1.0f);
 
-
-
 		VkCommandPool& GetCommandPool() {
 			return commandPool;
 		}
 
-	private:
+		void SetSimulatousData(Buffer& src,
+			VkDeviceSize offset,
+			VkDeviceSize size,
+			void* data);
 
-		VkCommandPool commandPool;
-		VkClearValue clearColor;
-		VkSemaphore imageSemaphore, rendererSemaphore = VK_NULL_HANDLE;
-		VkQueue graphicQueue, presentQueue = VK_NULL_HANDLE;
-		VkFence dataTransferFence;
+		void UpdateData(Shader shader);
 
-		uint32_t imageIndex = 0;
+		/*
+		void SetStaticData(Texture tex, VkDeviceSize offset);
+		void SetData(Texture src, Texture des, uint32_t offsetSrc, uint32_t offsetDst);
+		void LayoutImage(Texture para, VkImageLayout oldLayout,
+			VkImageLayout newLayout);*/
 
-		std::vector<VkCommandBuffer> commandBuffer;
-		VkCommandBuffer transfererBuffer;
-		std::vector<Buffer> realBuffers, transferBuffers;
+		void CreateUniformDescriptorSets() {
 
-		uint32_t currentBuffer;
-		Framebuffers buffers;
-		Device device;
-		GraphicPipeline pipe;
-		Swapchain chain;
+			VkDescriptorPoolCreateInfo poolInfo = {};
 
-		uint32_t bufferIndex, transferIndex = 0;
+			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			poolInfo.maxSets = desSetLayouts.size();
+			poolInfo.poolSizeCount = uniformDescriptorPoolSize.data()->size();
+			poolInfo.pPoolSizes = uniformDescriptorPoolSize.data()->data();
+		
+			VkResult res1 = vkCreateDescriptorPool(device.logicalDevice,
+				&poolInfo, nullptr, &descriptorPool);
+
+			for (uint32_t i = 0; i < desSetLayouts.size(); i++) {
+			
+				VkDescriptorSetAllocateInfo allocInfo = {};
+				allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+				allocInfo.descriptorPool = descriptorPool;
+
+				allocInfo.descriptorSetCount = desSetLayouts.size();
+				allocInfo.pSetLayouts = desSetLayouts.data();
+			
+				VkDescriptorSet set = {};
+			
+				VkResult res2 = vkAllocateDescriptorSets(device.logicalDevice,
+					&allocInfo, &set);
+
+				uniformDescriptorSets.push_back(set);
+			
+				for (uint32_t j = 0; j < uniformWriteDescriptorSet[i].size(); j++) {
+					uniformWriteDescriptorSet[i][j].dstSet = set;
+				}
+
+				vkUpdateDescriptorSets(device.logicalDevice, uniformWriteDescriptorSet[i].size(),
+					uniformWriteDescriptorSet[i].data(), 0, nullptr);
+
+			}
+
+		
+		}
+
+		private:
+
+			VkCommandPool    commandPool					   = VK_NULL_HANDLE; ;
+			VkClearValue     clearColor							{ 0,0,0,0 };
+			VkDescriptorPool descriptorPool                    = VK_NULL_HANDLE;
+			VkSemaphore      imageSemaphore, rendererSemaphore = VK_NULL_HANDLE;
+			VkQueue          graphicQueue, presentQueue        = VK_NULL_HANDLE;
+			VkFence			 dataTransferFence;
+
+			uint32_t		 imageIndex						   = 0				;
+			uint32_t         numberOfUniformDescriptor         = 0			    ;
+
+			std::vector<VkCommandBuffer> commandBuffer               ;
+			std::vector<VkCommandBuffer> transfererCommandBuffer,
+										 indexCommandBuffer,
+										 textureTransfererCmdBuff;
+			std::vector<VkDescriptorSet> uniformDescriptorSets       ;
+
+			std::vector<Buffer>			 
+				realBuffers, staticTransferBuffers,
+				uniformTransferBuffers,
+				indexTransferBuffers,
+				staticBuffers, uniformBuffers,
+				indexBuffers;
+
+			std::vector<VkDescriptorSetLayout> desSetLayouts;
+
+			//Map is inconvinient
+			std::vector<std::vector<VkWriteDescriptorSet>> uniformWriteDescriptorSet;
+			std::vector<std::vector<VkDescriptorPoolSize>> uniformDescriptorPoolSize;
+
+			std::vector<Texture>         realTextures, transfererTexture;
+
+			Framebuffers				buffers;
+			Device						device;
+			GraphicPipeline				pipe;
+			Swapchain				    chain;
+
+			uint32_t currentBuffer, currentUniformBuffer = 0;
+			uint32_t bufferIndex, transferIndex, texTransIndex, indexIndices = 0;
 
 	};
 

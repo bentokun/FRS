@@ -1,5 +1,4 @@
-#ifndef ASSERTSSE_H
-#define ASSERTSSE_H
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -10,25 +9,25 @@
 #define FRS_S_ASSERT(x) \
              if ((x)) \
                { \
-                 std::cout << "[Line: "<<__LINE__<<" ; File: "<<__FILE__<<"]: ERROR: "<< #x <<std::endl; \
+                 std::cout << "[Line: "<<__LINE__<<" ; File: "<<__FILE__<<"]: "<< #x <<std::endl; \
                }
 
 #define FRS_ASSERT(x,message)\
 	 if ((x)) \
 	 { \
-		 std::cout << "[Line: " << __LINE__ << " ; File: " << __FILE__ << "]: ERROR: " << #message << std::endl; \
+		 std::cout << "[Line: " << __LINE__ << " ; File: " << __FILE__ << "]: " << #message << std::endl; \
 	 }
 
 #define FRS_ASSERT_WV(x,message,v1,v2)\
 	 if ((x)) \
 	 { \
-		 std::cout << "[Line: " << __LINE__ << " ; File: " << __FILE__ << "]: ERROR: " << #message <<". Value: "<<v1<<","<<v2 << std::endl; \
+		 std::cout << "[Line: " << __LINE__ << " ; File: " << __FILE__ << "]: " << #message <<". Value: "<<v1<<","<<v2 << std::endl; \
 	 }
 
 #define FRS_MESSAGE(x) \
              if ((x)) \
                { \
-                 std::cout << "[Line: "<<__LINE__<<" ; File: "<<__FILE__<<"]: ERROR: "<< x <<std::endl; \
+                 std::cout << "[Line: "<<__LINE__<<" ; File: "<<__FILE__<<"]: "<< x <<std::endl; \
                }
 
 #else
@@ -52,5 +51,5 @@ if (x) {}\
 		throw std::runtime_error(message); \
 	 }
 #endif
-#endif
+
 

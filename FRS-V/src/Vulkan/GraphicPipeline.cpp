@@ -2,15 +2,168 @@
 
 namespace FRS {
 
-	void CreateGraphicPipeline(GraphicPipeline* pipe, 
-		Device device,
-		Swapchain swapChain,
+	std::vector<Buffer> CreateVertexBufferFromShader(Device device,
+		DeviceAllocator allocator,
 		Shader shader,
-		std::vector<Buffer> &buffers) {
+		uint32_t totalSize) {
+
+		std::vector<Buffer> tBuffers;
+
+		for (uint32_t i = 0; i < totalSize; i++) {
+			Buffer buffer{};
+
+			CreateBuffer(buffer, device, VK_BUFFER_USAGE_TRANSFER_DST_BIT|
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				shader.VertexInput.BindingSize[i], true,
+				allocator);
+
+			buffer.directData = shader.VertexInput.BindingDatas[i];
+			buffer.transferSize = shader.VertexInput.BindingSize[i];
+
+			tBuffers.push_back(buffer);
+		}
+
+		return tBuffers;
+	}
+
+
+	std::vector<Buffer> CreateUniformBufferFromShader(Device device,
+		DeviceAllocator allocator,
+		Shader shader,
+		GraphicPipeline* pipe,
+		uint32_t& totalSet,
+		std::vector<uint32_t>& sizePerSet) {
+
+		std::vector<Buffer> tBuffers;
+		uint32_t i;
+
+		for (i = 0; i < 25; i++) {
+				
+			if (shader.UniformSets[i].UniformBindings[0].stage == UNDENTIFIED)
+				break;
+
+			else {
+
+				uint32_t j = 0;
+
+				std::vector<Buffer> GroupBuffer;
+
+				for (j = 0; j < 25; j++) {
+
+					if (shader.UniformSets[i].UniformBindings[j].stage == UNDENTIFIED)
+						break;
+					else {
+					
+						Buffer buffer{};
+
+						CreateBuffer(buffer, device, VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
+							VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+							shader.UniformSets[i].BindingSize[j], true,
+							allocator);
+
+						buffer.directData = shader.UniformSets[i].BindingDatas[j];
+						buffer.transferSize = shader.UniformSets[i].BindingSize[j];
+
+						VkDescriptorSetLayoutBinding layout = {};
+
+						layout.binding = j;
+						layout.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+						layout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+						layout.stageFlags = shader.UniformSets[i].UniformBindings[j].stage;
+						layout.pImmutableSamplers = nullptr;
+
+						buffer.setUniformLayoutBinding = layout;
+
+						buffer.poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+						buffer.poolSize.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+
+						tBuffers.push_back(buffer);
+						GroupBuffer.push_back(buffer);
+					}
+	
+				}
+
+				pipe->CreateUniformDescriptorSetLayout(j, GroupBuffer.data(),
+					GroupBuffer.size());
+
+				sizePerSet.push_back(j);
+			}
+	
+		}
+
+		totalSet = i;
+
+		return tBuffers;
+
+	}
+
+	std::vector<Buffer> CreateIndexbuffer(Device device, Shader shader,
+		DeviceAllocator allocator) {
+		std::vector<Buffer> tBuffers;
+
+		for (uint32_t i = 0; i < 25; i++) {
+			if (shader.IndexInput.IndexDatas[i] == nullptr) {
+				break;
+			}
+			else {
+				Buffer buff;
+				CreateBuffer(buff, device, VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+					VK_BUFFER_USAGE_INDEX_BUFFER_BIT, shader.IndexInput.IndexSize[i],
+					true, allocator);
+
+				buff.directData = shader.IndexInput.IndexDatas[i];
+				buff.transferSize = shader.IndexInput.IndexSize[i];
+
+				tBuffers.push_back(buff);
+			}
+		}
+
+		return tBuffers;
+	}
+
+	void CreateGraphicPipeline(GraphicPipeline* pipe,
+		Device device,
+		DeviceAllocator allocator,
+		Swapchain swapChain,
+		Shader shader) {
+
+		bool haveDestroy = false;
+
+		if (pipe->mLayout != VK_NULL_HANDLE) {
+			vkDestroyPipelineLayout(pipe->device.logicalDevice,
+				pipe->mLayout, nullptr);
+
+			haveDestroy = true;
+		}
+		
+		if (pipe->mRenderPass != VK_NULL_HANDLE) {
+			vkDestroyRenderPass(pipe->device.logicalDevice,
+				pipe->mRenderPass,
+				nullptr);
+		}
+
+		if (pipe->pipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(pipe->device.logicalDevice,
+				pipe->pipeline, nullptr);
+		}
+
+		for (uint32_t i = 0; i < pipe->uniformDesLayouts.size() && pipe->uniformDesLayouts.size() != 0; i++) {
+			vkDestroyDescriptorSetLayout(pipe->device.logicalDevice,
+				pipe->uniformDesLayouts[i], nullptr);
+
+			pipe->uniformDesLayouts[i] = VK_NULL_HANDLE;
+		}
+
+		pipe->uniformDesLayouts.resize(0);
+		pipe->uniformPoolSizes.resize(0);
+
+		pipe->desBufferHandle.clear();
+		pipe->uniformWriteDescriptorSets.clear();
 
 		pipe->device = device;
-		pipe->buffers = buffers;
-		
+		pipe->mLayout = VK_NULL_HANDLE;
+		pipe->allocator = allocator;
+
 		VkAttachmentDescription colorAttachment = {};
 		colorAttachment.format = swapChain.format.format;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -67,30 +220,54 @@ namespace FRS {
 		fShaderStage.module = shader.GetFragmentModule();
 		fShaderStage.pName = "main";
 		fShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-
+		
 		VkPipelineShaderStageCreateInfo shaderStages[] = {vShaderStage,fShaderStage};
 
-		const uint32_t sizes = buffers.size();
+		std::vector<VkVertexInputAttributeDescription> attributesDes;
+		std::vector<VkVertexInputBindingDescription> bindingDes;
 
-		std::vector<VkVertexInputBindingDescription> descriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+		FRS::GetShaderBind(shader, attributesDes, bindingDes);
 
-		for (auto& buffer : buffers) {
-			descriptions.push_back(buffer.GetBindingDescriptions());
-			
-			for (auto& attributeInfo : buffer.GetAttributeDescriptions()) {
-				attributeDescriptions.push_back(attributeInfo);
+		if (haveDestroy == false) {
+
+			pipe->staticBuffers = FRS::CreateVertexBufferFromShader(device, allocator,
+				shader, bindingDes.size());
+			pipe->uniformBuffers = FRS::CreateUniformBufferFromShader(device, allocator, shader,
+				pipe, pipe->totalSet, pipe->sizePerSet);
+			pipe->indexBuffers = FRS::CreateIndexbuffer(device, shader, allocator);
+
+			for (auto& buffer : pipe->staticBuffers) {
+				pipe->realBuffers.push_back(buffer);
+			}
+
+			for (auto& buffer : pipe->uniformBuffers) {
+				pipe->realBuffers.push_back(buffer);
+			}
+
+			for (auto& buffer : pipe->indexBuffers) {
+				pipe->realBuffers.push_back(buffer);
+			}
+
+		}
+		else {
+			for (uint32_t i = 0; i < pipe->totalSet; i++) {
+				std::vector<Buffer> buffers;
+
+				for (uint32_t j = 0; j < pipe->sizePerSet[i]; j++) {
+					buffers.push_back(pipe->uniformBuffers[(i + 1) * j]);
+				}
+
+				pipe->CreateUniformDescriptorSetLayout(buffers.size(), buffers.data(),
+					i);
 			}
 		}
-
-		std::cout << "DES: "<<descriptions.size() << std::endl;
-
+    
 		VkPipelineVertexInputStateCreateInfo vertexInput = {};
 		vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInput.vertexAttributeDescriptionCount = attributeDescriptions.size();
-		vertexInput.vertexBindingDescriptionCount = buffers.size();
-		vertexInput.pVertexAttributeDescriptions = attributeDescriptions.data();
-		vertexInput.pVertexBindingDescriptions = descriptions.data();
+		vertexInput.vertexAttributeDescriptionCount = attributesDes.size();
+		vertexInput.vertexBindingDescriptionCount = bindingDes.size();
+		vertexInput.pVertexAttributeDescriptions = attributesDes.data();
+		vertexInput.pVertexBindingDescriptions = bindingDes.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAsm = {};
 		inputAsm.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -125,7 +302,7 @@ namespace FRS {
 		rasterizationInf.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationInf.lineWidth = 1.0f;
 		rasterizationInf.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationInf.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizationInf.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		rasterizationInf.depthBiasEnable = VK_FALSE;
 
@@ -171,7 +348,9 @@ namespace FRS {
 
 		VkPipelineLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		
+		layoutInfo.setLayoutCount = pipe->uniformDesLayouts.size();
+		layoutInfo.pSetLayouts = pipe->uniformDesLayouts.data();
+
 		if (vkCreatePipelineLayout(device.logicalDevice, &layoutInfo, nullptr, &pipe->mLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Cant create layout!");
 		}
@@ -202,16 +381,31 @@ namespace FRS {
 	}
 
 	void DestroyGraphicPipeline(
-		GraphicPipeline pipe){
+		GraphicPipeline* pipe){
 
-		vkDestroyPipelineLayout(pipe.device.logicalDevice,
-			pipe.mLayout, nullptr);
-		vkDestroyRenderPass(pipe.device.logicalDevice, 
-			pipe.mRenderPass,
+		vkDestroyPipelineLayout(pipe->device.logicalDevice,
+			pipe->mLayout, nullptr);
+		vkDestroyRenderPass(pipe->device.logicalDevice,
+			pipe->mRenderPass,
 			nullptr);
-		vkDestroyPipeline(pipe.device.logicalDevice,
-			pipe.pipeline, nullptr);
-	
+		vkDestroyPipeline(pipe->device.logicalDevice,
+			pipe->pipeline, nullptr);
+
+		for (uint32_t i = 0; i < pipe->uniformDesLayouts.size(); i++) {
+			vkDestroyDescriptorSetLayout(pipe->device.logicalDevice,
+				pipe->uniformDesLayouts[i], nullptr);
+			pipe->uniformDesLayouts[i] = VK_NULL_HANDLE;
+		}
+
+		pipe->uniformDesLayouts.resize(0);
+		pipe->uniformPoolSizes.resize(0);
+
+		pipe->desBufferHandle.clear();
+		pipe->uniformWriteDescriptorSets.clear();
+
+		for (auto& buffer : pipe->realBuffers) {
+			DestroyBuffer(pipe->device, &buffer);
+		}
 	}
 
 }

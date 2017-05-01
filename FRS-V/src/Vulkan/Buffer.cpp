@@ -31,7 +31,9 @@ namespace FRS {
 		VkResult result = vkAllocateMemory(mDevice.logicalDevice, &info,
 			nullptr, &mMem);
 
-		FRS_ASSERT(result != VK_SUCCESS, "Cant allocate memory for staging, error code:" + result);
+		if (result != VK_SUCCESS) {
+			throw std::runtime_error("Cant allocate memory by Vulkan, breaking bug");
+		}
 
 		block.memory = mMem;
 
@@ -39,7 +41,7 @@ namespace FRS {
 		vkGetPhysicalDeviceMemoryProperties(mDevice.physicalDevice, &properties);
 
 		if ((properties.memoryTypes[mMemoryTypeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-			vkMapMemory(mDevice.logicalDevice, block.memory, block.offSet, VK_WHOLE_SIZE, 0 , &mPtr);
+			vkMapMemory(mDevice.logicalDevice, block.memory, block.offSet, VK_WHOLE_SIZE, 0 , &dataPointer);
 			vkUnmapMemory(mDevice.logicalDevice, block.memory);
 		}
 
@@ -75,9 +77,9 @@ namespace FRS {
 						mBlock.offSet += align - mBlock.offSet % align;
 				}
 
-				if (mPtr != nullptr)
+				if (dataPointer != nullptr)
 					//Point to the offset
-					mBlock.ptr = (char*)mPtr + block.offSet;
+					mBlock.ptr = (char*)dataPointer + block.offSet;
 				}
 
 				if (mBlock.size == size) {
@@ -138,7 +140,7 @@ namespace FRS {
 		return *(count);
 	}
 
-	Resource::Resource(Device const &device) : mDevice(std::make_shared<Device>(device))
+	Resource::Resource(Device const &device) : mDevice((device))
 	{};
 
 	
@@ -170,20 +172,32 @@ namespace FRS {
 	Chunk ChunkAllocator::allocate(VkDeviceSize size,
 		int memType) {
 		
-		FRS_MESSAGE(mSize);
-
 		size = (size > mSize) ? nextPowerOfTwo(size) : mSize;
-
-		FRS_MESSAGE(mSize);
 
 		return Chunk(mDevice, size, memType);
 	}
 
 	DeviceAllocator::DeviceAllocator(Device device, VkDeviceSize size)
-		: Allocator(device)
+		: Allocator(device),
+		mChunkAlloc(device, size)
 	{
-		mChunkAlloc = FRS::ChunkAllocator(device, size);
+		
 	};
+
+	void CreateDeviceAllocator(DeviceAllocator *allocator,
+		Device device, VkDeviceSize size) {
+
+		CreateChunkAllocator(&allocator->mChunkAlloc, device, size);
+
+	}
+
+	void DestroyDeviceAllocator(DeviceAllocator allocator) {
+		std::cout << "DESTROY ALLOCATOR" << std::endl;
+
+		for (auto &mChunk : allocator.mChunks) {
+			DestroyChunk(&mChunk);
+		}
+	}
 
 	Block DeviceAllocator::allocate(VkDeviceSize size, VkDeviceSize alignment, int memType) {
 		Block block;
@@ -197,7 +211,10 @@ namespace FRS {
 		mChunks.emplace_back(mChunkAlloc.allocate(size, memType));
 		bool result = mChunks.back().Allocate(size, alignment, block);
 
-		FRS_ASSERT(result != true, "CANT ALLOCATE!");
+		if (result == false) {
+			throw std::runtime_error("Cant alloc, may issue breaking cpu");
+		}
+
 		return block;
 
 	}
@@ -218,6 +235,7 @@ namespace FRS {
 		
 		buffer.mSize = size; buffer.deviceLocal = localQ;
 		buffer.mUsageFlag = usage; buffer.mAllocator = allocator;
+		buffer.mDevice = device;
 
 		VkBufferCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -267,15 +285,19 @@ namespace FRS {
 		buffer.block = buffer.mAllocator.allocate(buffer.mMemReq.size, buffer.mMemReq.alignment, memType);
 		vkBindBufferMemory(device.logicalDevice, buffer.buffer, buffer.block.memory, buffer.block.offSet);
 
-		std::cout << "SIZE: " << buffer.mSize << std::endl;
+	}
 
-		if (!localQ) {
-			vkMapMemory(device.logicalDevice,
-				buffer.block.memory, buffer.block.offSet, buffer.mSize,
-				0, &buffer.mPtr);
-		}
+	void DestroyBuffer(Device device, Buffer* Tbuffer) {
+
+		vkDestroyBuffer(device.logicalDevice, Tbuffer->buffer,
+			nullptr);
+
+		vkFreeMemory(device.logicalDevice, Tbuffer->block.memory, nullptr);
 
 	}
+
+
+
 
 
 }

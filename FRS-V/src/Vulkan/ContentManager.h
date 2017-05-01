@@ -1,13 +1,16 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <typeinfo>
 
+#include "Buffer.h"
 #include "Rules.h"
 #include "Device.h"
 #include "FRSCM_Reader\ShaderReader.h"
+//#include "FRSCM_Reader\TextureReader.h"
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
@@ -23,52 +26,70 @@ namespace FRS {
 	public:
 
 		ContentManager() = default;
-		ContentManager(Device device);
+		ContentManager(Device device, DeviceAllocator allocator);
 
-		template <class T>
-		T Load(std::string path, std::string path2) {
-			return T{};
+		friend void CreateContentManager(ContentManager* manager,
+			Device device, DeviceAllocator allocator);
+
+		Shader Load(std::string path, std::string path2) {
+
+			Shader shader = ReadModuleShader(device, path, path2);
+			shaders.push_back(shader);
+
+			return shader;
 		}
 
-		Shader Load(std::string path, std::string path2){
+		/*
+		Texture Load(std::string path) {
 
-				Shader shader = ReadModuleShader(device, path, path2);
-				shaders.push_back(shader);
+			Texture texture = ReadTexture(device, allocator,
+				TEXTURE_2D, path);
 
-				return shader;
-		}
+			textures.push_back(texture);
+			return texture;
 
-		template <typename T>
-		void Unload(T para) {
+		}*/
 
-			const char* t = "class FRS::Shader";
 
-			if (t == "class FRS::Shader") {
+		void Unload(Shader para) {
 
-				auto shaderToFind = std::find(
-					shaders.begin(), shaders.end(), para
-				);
+			auto shaderToFind = std::find(
+				shaders.begin(), shaders.end(), para
+			);
 
-				if (shaderToFind != shaders.end()) {
-					std::cout << "Destroyed!" << std::endl;
-					Destroy(para);
-					shaders.erase(shaderToFind);
-				}
-				else {
-					std::cout << "Haven't destroy shader!" << std::endl;
-				}
-
+			if (shaderToFind != shaders.end()) {
+				std::cout << "Destroyed!" << std::endl;
+				Destroy(para);
+				shaders.erase(shaderToFind);
 			}
 			else {
-				std::cout << t << std::endl;
-				throw std::exception("Can't destroy!");
+				std::cout << "Haven't destroy shader!" << std::endl;
 			}
+
 		}
+
+		/*
+		void Unload(Texture para) {
+			auto textureToFind = std::find(
+				textures.begin(), textures.end(), para
+			);
+
+			if (textureToFind != textures.end()) {
+				std::cout << "Destroyed!" << std::endl;
+				Destroy(para);
+				textures.erase(textureToFind);
+			}
+			else {
+				std::cout << "Haven't destroy shader!" << std::endl;
+			}
+		}*/
 
 	private:
 
 		Device device;
+		DeviceAllocator allocator;
 		std::vector<Shader> shaders;
+		//std::vector<Texture> textures;
 
 	};
 

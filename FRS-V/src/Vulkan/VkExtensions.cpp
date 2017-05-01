@@ -2,6 +2,58 @@
 
 namespace FRS {
 
+	void CreateInstance(std::string appName, bool EnableValidation, VkInstance* instance) {
+
+		VkApplicationInfo appInfo;
+
+		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		appInfo.apiVersion = VK_API_VERSION_1_0;
+		appInfo.pNext = NULL;
+		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.pEngineName = "FRSEngine";
+		appInfo.pApplicationName = appName.c_str();
+		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+
+		VkInstanceCreateInfo instanceInfo;
+		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		instanceInfo.pApplicationInfo = &appInfo;
+		instanceInfo.pNext = NULL;
+		instanceInfo.flags = 0;
+
+		std::vector<std::string> extensionsName = FRS::vkInstanceExtensions();
+		std::vector<const char*> realExtensions;
+
+		for (int i = 0; i < extensionsName.size(); i++) {
+			realExtensions.push_back(extensionsName[i].c_str());
+		}
+
+		if (EnableValidation) {
+			realExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+		}
+
+		instanceInfo.enabledExtensionCount = (uint32_t)realExtensions.size();
+		instanceInfo.ppEnabledExtensionNames = realExtensions.data();
+
+		const std::vector<const char*> layerCheck{
+			"VK_LAYER_LUNARG_standard_validation"
+		};
+
+		if (EnableValidation) {
+			instanceInfo.enabledLayerCount = layerCheck.size();
+			instanceInfo.ppEnabledLayerNames = layerCheck.data();
+		}
+		else {
+			instanceInfo.enabledLayerCount = 0;
+		}
+
+		VkResult result = vkCreateInstance(&instanceInfo, nullptr, instance);
+
+		if (result != VK_SUCCESS) {
+			std::cout << result << std::endl;
+			FRS_FATAL_ERROR("Cant create VK_INSTANCE!");
+		}
+	}
+
 	std::vector<std::string> vkInstanceExtensions() {
 
 		uint32_t totalExtensions;
@@ -45,7 +97,7 @@ namespace FRS {
 			}
 
 			if (!layerFound) {
-				std::cout << "Cant find validation lauer!" << std::endl;
+				std::cout << "Cant find validation layer!" << std::endl;
 				return FAILURE;
 			}
 				
@@ -128,11 +180,6 @@ namespace FRS {
 		//Auto-ordered map
 		std::multimap<int, VkPhysicalDevice> deviceScoreMaps;
 
-		if (devices.size() == 1) {
-			device = devices[0];
-			return SUCCESS;
-		}
-
 		for (const auto& pdevice : devices) {
 			int score = PhysicalDeviceScore(pdevice);
 
@@ -141,13 +188,13 @@ namespace FRS {
 
 		if (deviceScoreMaps.size() == 1) {
 			device = deviceScoreMaps.begin()->second;
-			std::cout << "\t" << "\t" << "GPU choosen score: " << deviceScoreMaps.begin()->first << std::endl;
+			std::cout << "\t" << "\t" << "GPU choosen score: " << deviceScoreMaps.begin()->first<<"\n" << std::endl;
 			return SUCCESS;
 		}
 
 		if (deviceScoreMaps.rbegin()->first > 0) {
 
-			QueueFamilyIndex index = findAllQueueFamily(deviceScoreMaps.rbegin()->second, nullptr);
+			QueueFamilyIndex index = findAllQueueFamily(deviceScoreMaps.rbegin()->second, Window());
 			bool compitableQueue = index.isGraphicComplete();
 
 			if (compitableQueue)
@@ -173,41 +220,48 @@ namespace FRS {
 		vkGetPhysicalDeviceProperties(device, &props);
 		vkGetPhysicalDeviceFeatures(device, &feautures);
 
-		if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+			std::cout << "GPU type: Discrete" << std::endl;
 			score += 1000;
+		}
+			
 
 		//Rank GPU based on the vendor
-		switch (props.deviceType)
+		switch (props.vendorID)
 		{
 			//NVIDIA
 		case 0x10DE:
-			std::cout << "NVIDIA!" << std::endl;
+			std::cout << "Vendor: "<< "NVIDIA" << std::endl;
 			score += 1000;
 			break;
 
 			//AMD
 		case 0x1002:
+			std::cout << "Vendor: " << "AMD" << std::endl;
 			score += 800;
 			break;
 
 			//VR-GPU
 		case 0x1010:
+			std::cout << "Vendor: " << "ImgTec" << std::endl;
 			score += 1000;
 			break;
 
 			//Intel.
 		case 0x8086:
+			std::cout << "Vendor: " << "Intel" << std::endl;
 			score += 600;
 			break;
 
 			//ARM
 		case 0x13B5:
+			std::cout << "Vendor: " << "ARM" << std::endl;
 			score += 600;
 			break;
 
-			//qualcomm is greater than arm
-			//That's my thought on using things on WM10
+			//Qualcomm
 		case 0x5143:
+			std::cout << "Vendor: " << "Qualcomm" << std::endl;
 			score += 800;
 			break;
 
@@ -242,7 +296,7 @@ namespace FRS {
 
 		VkDeviceCreateInfo deviceInfo = {};
 
-		QueueFamilyIndex index = FRS::findAllQueueFamily(device, &window);
+		QueueFamilyIndex index = FRS::findAllQueueFamily(device, window);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<int> family = { index.graphicsFamily, index.presentFamily };
@@ -313,7 +367,7 @@ namespace FRS {
 		FRS::Window& window, VkQueue* graphicFam, VkQueue* presentFam) {
 
 
-		QueueFamilyIndex index = findAllQueueFamily(physicalDevice, &window);
+		QueueFamilyIndex index = findAllQueueFamily(physicalDevice, window);
 
 		vkGetDeviceQueue(device, index.graphicsFamily, 0, graphicFam);
 		vkGetDeviceQueue(device, index.presentFamily, 0, presentFam);
@@ -356,18 +410,18 @@ namespace FRS {
 
 	}
 
-	VkSurfaceCapabilitiesKHR GetWindowSurfaceCapabilities(VkPhysicalDevice device, Window* window) {
+	VkSurfaceCapabilitiesKHR GetWindowSurfaceCapabilities(VkPhysicalDevice device, Window window) {
 
 		VkSurfaceCapabilitiesKHR capabilities {VK_NULL_HANDLE};
 
-		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, window->surface, &capabilities) != VK_SUCCESS) {
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, window.surface, &capabilities) != VK_SUCCESS) {
 			FRS_FATAL_ERROR("Cant get surface caps");
 		}
 
 		return capabilities;
 	}
 
-	VkExtent2D GetSuitableWindowExtent(VkPhysicalDevice device, Window* window) {
+	VkExtent2D GetSuitableWindowExtent(VkPhysicalDevice device, Window window) {
 
 		VkSurfaceCapabilitiesKHR capabilities = GetWindowSurfaceCapabilities(device, window);
 
@@ -375,7 +429,7 @@ namespace FRS {
 			return capabilities.currentExtent;
 		}
 		else {
-			VkExtent2D extent = window->GetWindowExtent();
+			VkExtent2D extent = window.GetWindowExtent();
 
 			extent.width = FRSML::Clamp(capabilities.minImageExtent.width,
 				capabilities.maxImageExtent.width,
@@ -388,19 +442,16 @@ namespace FRS {
 			return extent;
 		}
 
-	
-
-
 	}
 
 
-	VkSurfaceFormatKHR GetSuitableWindowSurfaceFormat(VkPhysicalDevice device, Window* window) {
+	VkSurfaceFormatKHR GetSuitableWindowSurfaceFormat(VkPhysicalDevice device, Window window) {
 
 		uint32_t surfaceFormatCounts;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, window->surface, &surfaceFormatCounts, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, window.surface, &surfaceFormatCounts, nullptr);
 
 		std::vector<VkSurfaceFormatKHR> surfaceFormats{ surfaceFormatCounts };
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, window->surface, &surfaceFormatCounts, surfaceFormats.data());
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, window.surface, &surfaceFormatCounts, surfaceFormats.data());
 
 		if (surfaceFormats.size() == 0) {
 			FRS_FATAL_ERROR("Can't choose suitable surface format!");
@@ -420,13 +471,13 @@ namespace FRS {
 
 	}
 
-	VkPresentModeKHR GetSuitableWindowPresentMode(VkPhysicalDevice device, Window* window) {
-
+	VkPresentModeKHR GetSuitableWindowPresentMode(VkPhysicalDevice device, Window window) {
+		
 		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, window->surface, &presentModeCount, nullptr);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, window.surface, &presentModeCount, nullptr);
 
 		std::vector<VkPresentModeKHR> presentModes{ presentModeCount };
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, window->surface, &presentModeCount, presentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, window.surface, &presentModeCount, presentModes.data());
 
 		if (presentModeCount == 0) {
 			FRS_FATAL_ERROR("Can't choose suitable presentmode!");
@@ -436,13 +487,13 @@ namespace FRS {
 			if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
 				return presentMode;
 		}
-
+		
 		return VK_PRESENT_MODE_FIFO_KHR;
 
 	}
 
 
-	TFAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window* window) {
+	TFAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window window) {
 
 		VkSurfaceCapabilitiesKHR capabilities = GetWindowSurfaceCapabilities(device, window);
 		
@@ -458,5 +509,7 @@ namespace FRS {
 		return ImageCount;
 
 	}
+
+
 
 }

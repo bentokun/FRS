@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include <vector>
 
@@ -37,6 +38,6 @@ namespace FRS {
 	};
 
 	TFAPI QueueFamilyIndex findAllQueueFamily(VkPhysicalDevice device,
-		FRS::Window* window);
+		FRS::Window window);
 
 }

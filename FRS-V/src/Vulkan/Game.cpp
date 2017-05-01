@@ -2,17 +2,8 @@
 
 namespace FRS {
 
-	void Game::CreateGameDevice(Device* device, Window window) {
-
-		*device = FRS::Device(instance, &window, EnableValidation);
-
-	}
-
-
 	void Game::DisableConsoleCallback() {
-
 		DestroyDebugReportCallbackEXT(instance, reporter, nullptr);
-
 	}
 
 	
@@ -21,107 +12,26 @@ namespace FRS {
 		FRS_STATE state = FRS::vkCheckValidation();
 
 		if (state != SUCCESS) {
-
-			//std::cout << "Enable Console!" << std::endl;
-
 			if (FRS::vkEnabledConsoleReport(instance,
 				func, &reporter)) {
 				return SUCCESS;
 			}
-
 			return FAILURE;
 		}
 
 		else {
-
-			std::cout << "Cant enable console callback!" <<" "<<state<< std::endl;
-
+			FRS_MESSAGE("Can't enable console callback");
 			return FAILURE;
 		}
-			
-
 	}
 
-	FRS_STATE Game::CreateSwapChain(Swapchain* swapChain, 
-		Device* device,
-		FRSImageComponent rbgacomponent[4], Window* window) {
 
-		*swapChain = Swapchain{ device, window, rbgacomponent };
-
-		return SUCCESS;
-
-	}
-
-	void Game::DestroySwapChain(Device device,
-		Swapchain swapChain) {
-
-		DestroyTheSwapchain(swapChain);
-
-	}
-
-	Game::Game(std::string appName, bool debugMessageEnabled) {
-
+	Game::Game(std::string appName, bool debugMessageEnabled, FRSWindowState state):
+	EnableValidation(debugMessageEnabled){
+		
 		quit = false;
-
-		EnableValidation = debugMessageEnabled;
-
-		VkApplicationInfo appInfo;
-
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.apiVersion = VK_API_VERSION_1_0;
-		appInfo.pNext = NULL;
-		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "FRSEngine";
-		appInfo.pApplicationName = appName.c_str();
-		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		
-		VkInstanceCreateInfo instanceInfo;
-		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		instanceInfo.pApplicationInfo = &appInfo;
-		instanceInfo.pNext = NULL;
-		instanceInfo.flags = 0;
-
-		std::vector<std::string> extensionsName = FRS::vkInstanceExtensions();
-		std::vector<const char*> realExtensions;
-
-		for (int i = 0; i < extensionsName.size(); i++) {
-			realExtensions.push_back(extensionsName[i].c_str());
-		}
-
-		if (EnableValidation) {
-			realExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-		}
-		 
-		instanceInfo.enabledExtensionCount = (uint32_t)realExtensions.size();
-		
-		std::cout << "Total Extensions: " << std::endl;
-
-		for (auto& extensionName : extensionsName) {
-			std::cout << "\t"<<"\t"<< extensionName << std::endl;
-		}
-
-		std::cout << "\n";
-
-		instanceInfo.ppEnabledExtensionNames = realExtensions.data();
-
-		const std::vector<const char*> layerCheck{
-			"VK_LAYER_LUNARG_standard_validation"
-		};
-
-		if (EnableValidation) {
-			instanceInfo.enabledLayerCount = layerCheck.size();
-			instanceInfo.ppEnabledLayerNames = layerCheck.data();
-		}
-		else {
-			instanceInfo.enabledLayerCount = 0;
-		}
-
-		VkResult result = vkCreateInstance(&instanceInfo, nullptr, &instance);
-
-		if (result != VK_SUCCESS) {
-			std::cout << result << std::endl;
-			FRS_FATAL_ERROR("Cant create VK_INSTANCE!");
-		}
+		CreateInstance(appName, EnableValidation, &instance);
+		this->state = state;
 
 	}
 
@@ -129,98 +39,121 @@ namespace FRS {
 
 		Start();
 
-		do {
+		uint32_t frame = 0;
+
+		while (!quit) {
+
+			PollEvents();
+		
+			AdjustCurrentThreadFPS(60.0f);
+
 			Update();
-		} while (!quit);
+
+			//printf("Time: %f \n", (duration + sleep_time).count());
+		}
 
 		CleanUp();
-	};
 
-	struct Pos {
-		float x, y;
-	};
-
-	struct Color {
-		float x, y, z;
 	};
 
 	struct Vertex {
-
 		FRSML::vec2 pos;
 		FRSML::vec3 color;
-
 	};
 
 	const std::vector<Vertex> vertices = {
-		{ { 0.0f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-		{ { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f } },
-		{ { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } }
+		{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
+		{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
 	};
 
+	const std::vector<uint16_t> indices = {
+		0, 1, 2, 2, 3, 0
+	};
+
+	void Game::InputHandler(int code, FRSKeyState state) {
+		if (code == VK_ESCAPE) {
+			quit = true;
+		}
+	}
 
 	//Set Data should only be used once.
 	void Game::Start() {
-		
-		CreateVulkanWindow(&window, instance, "Ha", 800, 600);
-		EnabledConsoleCallback(debugCallbackFunc);
-		CreateGameDevice(&device, window);
 
-		FRSImageComponent components[4] = { VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY };
-		
-	 	manager = FRS::ContentManager(device);
+		VkFormat format;
+		int width, height, mipLevel;
+		char message[256];
 
-		Load();
-
-		swapChain = FRS::Swapchain(&device, &window, components);
-
-		allocator = FRS::DeviceAllocator{ device, 1 << 20 };
-
-		CreateBuffer(buffer1,device,VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			sizeof(vertices[0]) * vertices.size(), true ,allocator);
-		
-		buffer1.Bind(VK_VERTEX_INPUT_RATE_VERTEX, 0, sizeof(Vertex));
-
-		buffer1.Attribute(0, offsetof(Vertex, pos), VK_FORMAT_R32G32_SFLOAT);
-		buffer1.Attribute(1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT);
-		
-
-		
-		std::vector<Buffer> buffers;
-
-		buffers.push_back(buffer1);
-
-		CreateGraphicPipeline(&graphPipeline, device, swapChain, shader, buffers);
-
-		commander = FRS::Commander(swapChain, graphPipeline, device, allocator);
-
-		commander.SetData(buffer1, 0, sizeof(vertices[0])* vertices.size(), (void*)vertices.data());
-
-		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
+		CreateVulkanWindow(&window, instance, "Plane rotating around the damn train!", 800, 600,
+			0, 0, state);
 
 		using namespace std::placeholders;
 		//lambda is not my friend, but will try latez
 		window.SetResizeCallback(std::bind(&Game::ResizingHandler, this, _1, _2));
-		
-	};
+		window.SetKeyboardCallback(std::bind(&Game::InputHandler, this, _1, _2));
 
-	void Game::Recreate() {
+		unsigned char** image =
+			LoadDDS("teacher_test.dds", &width, &height, &mipLevel,
+			&format, message);
 
-		vkDeviceWaitIdle(device.logicalDevice);
+		unsigned char* image1 = image[6];
+
+		if (EnableValidation)
+			EnabledConsoleCallback(debugCallbackFunc);
+		CreateDevice(&device, instance, window, true);
+		CreateDeviceAllocator(&allocator, device, 1 << 20);
 
 		FRSImageComponent components[4] = { VK_COMPONENT_SWIZZLE_IDENTITY,
 			VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY };
 
-		RecreateTheSwapchain(&swapChain, &window, components);
+		CreateContentManager(&manager, device, allocator);
+		Load();
+		CreateSwapchain(&swapChain, device, window, components, false);
 
-		DestroyGraphicPipeline(graphPipeline);
-		DestroyCommander(commander);
+		shader.VertexInput.VertexBindings[0].InputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		shader.VertexInput.VertexBindings[0].Stride = sizeof(Vertex);
+		shader.VertexInput.BindingSize[0] = sizeof(vertices[0]) * vertices.size();
+		shader.VertexInput.BindingDatas[0] = (void*)vertices.data();
 
-		std::vector<Buffer> buffers;
-		buffers.push_back(buffer1);
+		shader.VertexInput.VertexBindings[0].Location[0].Format = VK_FORMAT_R32G32_SFLOAT;
+		shader.VertexInput.VertexBindings[0].Location[0].Offset = offsetof(Vertex, pos);
+		shader.VertexInput.VertexBindings[0].Location[1].Offset = offsetof(Vertex, color);
+		shader.VertexInput.VertexBindings[0].Location[1].Format = VK_FORMAT_R32G32B32_SFLOAT;
 
-		CreateGraphicPipeline(&graphPipeline, device, swapChain, shader, buffers);
-		commander = FRS::Commander(swapChain, graphPipeline, device, allocator);
+		shader.IndexInput.IndexDatas[0] = (void*)(indices.data());
+		shader.IndexInput.IndexSize[0] = sizeof(indices[0]) * indices.size();
+
+		shader.UniformSets[0].UniformBindings[0].dataArrayLength = 1;
+		shader.UniformSets[0].UniformBindings[1].dataArrayLength = 1;
+		shader.UniformSets[0].UniformBindings[0].stage = VERTEX_SHADER_STAGE;
+		shader.UniformSets[0].UniformBindings[1].stage = VERTEX_SHADER_STAGE;
+
+		shader.UniformSets[0].BindingSize[0] = sizeof(UniformBufferObject);
+		shader.UniformSets[0].BindingSize[1] = sizeof(Color);
+		
+		CreateGraphicPipeline(&graphPipeline, device, allocator,
+			swapChain, shader);
+		CreateCommander(&commander, swapChain, graphPipeline, device,
+			allocator);
+
+		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
+
+		UnloadDDS(image, mipLevel);
+
+	}
+
+	void Game::Recreate() {
+
+		FRSImageComponent components[4] = { VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY };
+
+		RecreateSwapchain(&swapChain, window, components);
+		vkDeviceWaitIdle(device.logicalDevice);
+
+		CreateGraphicPipeline(&graphPipeline, device,allocator, swapChain, shader);
+		CreateCommander(&commander, swapChain, graphPipeline, device,
+			allocator);
 
 		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
 	
@@ -238,9 +171,40 @@ namespace FRS {
 		manager.Unload(shader);
 	}
 
+
 	void Game::Update() {
 
-		FRSPollEvents();
+		static auto startTime = std::chrono::high_resolution_clock::now();
+
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
+	
+		//if (this->time.GetFrameRate() > 10) {
+		//	std::cout << this->time.GetFrameRate() << std::endl;
+		//}
+			
+
+		ubo.model = FRSML::Rotate(FRSML::Identity, time * FRSML::ToRadians(90.0f), FRSML::vec3(0, 0, 1));
+		ubo.view = FRSML::LookAt(FRSML::vec3(2.0f, 2.0f, 2.0f), FRSML::vec3(0.0f, 0.0f, 0.0f),
+			FRSML::vec3(0,0,1));
+		ubo.proj = FRSML::CreatePerspectiveMatrix(FRSML::ToRadians(45.0f),
+			FRSML::vec2(window.GetWindowExtent().width, window.GetWindowExtent().height), 0.1, 10);
+
+	    ubo.proj[1][1] *= -1;
+
+		color.sinTime = 1 - FRSML::Sin(time);
+
+		shader.UniformSets[0].BindingDatas[0] = (void*)(&ubo);
+		shader.UniformSets[0].BindingDatas[1] = (void*)(&color);
+
+		commander.UpdateData(shader);
+
+		controller.GetState();
+
+		if (controller.buttonB) {
+			std::cout << "Button B pressed" << std::endl;
+			controller.Vibrate(32000, 32000);
+		}
 
 		commander.Submit();
 		commander.Render();
@@ -250,6 +214,8 @@ namespace FRS {
 			std::cout << "Quit" << std::endl;
 			quit = true;
 		}
+		
+		
 
 	}
 
@@ -257,12 +223,13 @@ namespace FRS {
 
 		commander.Clear(1, 1, 1, 1);
 
-		Buffer buffers[1] = { buffer1 };
 		VkDeviceSize offset[1] = { 0 };
 
 		commander.Start();
-			commander.BindVertexBuffers(0, 1, buffers, offset);
-			commander.Draw(3, 1, 0, 0);
+			commander.BindVertexBuffers(0, 1, &graphPipeline.GetStaticBuffer()[0], offset);
+			commander.BindIndexBuffers(graphPipeline.GetIndexBuffer()[0], 0, VK_INDEX_TYPE_UINT16);
+			commander.BindDescriptorSet(VK_PIPELINE_BIND_POINT_GRAPHICS, 0, nullptr);
+			commander.DrawIndexed(indices.size(), 1, 0, 0, 0);
 		commander.End();
 
 	}
@@ -274,10 +241,14 @@ namespace FRS {
 
 		vkDeviceWaitIdle(device.logicalDevice);
 		
-		DestroyBuffer(device, &buffer1);
-		DestroyCommander(commander);
-		DestroyGraphicPipeline(graphPipeline);
-		DestroySwapChain(device, swapChain);
+		DestroyDeviceAllocator(allocator);
+		//DestroyBuffer(device, &buffer1);
+		//DestroyBuffer(device, &buffer2);
+		//DestroyBuffer(device, &buffer3);
+		//DestroyBuffer(device, &buffer4);
+		DestroyCommander(&commander);
+		DestroyGraphicPipeline(&graphPipeline);
+		DestroySwapchain(swapChain);
 		DestroyWindow(window);
 		DestroyDevice(device);
 

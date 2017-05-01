@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4251 4267)
 
 #include "Rules.h"
 #include "Window.h"
@@ -21,17 +22,20 @@ namespace FRS {
 
 		Swapchain();
 
+		friend void CreateSwapchain(Swapchain* swapChain, Device device, Window window, 
+			VkComponentSwizzle rgbaOption[4], bool vSync = false);
+
 		//In case we want monochrome effect, cause loading image is easier than doing shading
 		//if we can load image :)).
-		Swapchain(Device* device, Window* window,
-			VkComponentSwizzle rgbaOption[4] );
+		Swapchain(Device device, Window window,
+			VkComponentSwizzle rgbaOption[4], bool vSync = false);
 
 		VkSurfaceFormatKHR format;
 		VkPresentModeKHR presentMode;
 
 		VkExtent2D swapChainExtent{ VK_NULL_HANDLE };
 
-		friend void DestroyTheSwapchain(Swapchain chain);
+		friend void DestroySwapchain(Swapchain chain);
 
 		std::vector<VkImage> images;
 		std::vector<VkImageView> imageViews;
@@ -39,13 +43,14 @@ namespace FRS {
 		VkSwapchainKHR swapChain{ VK_NULL_HANDLE };
 		VkSwapchainKHR oldSwapChain{ VK_NULL_HANDLE };
 
-		friend void RecreateTheSwapchain(Swapchain* swapChain,
-			Window* window, VkComponentSwizzle rgbaOption[4]);
+		friend void RecreateSwapchain(Swapchain* swapChain,
+			Window window, VkComponentSwizzle rgbaOption[4],
+		    bool vSync = false);
 
 
 	private:
 		
-		Device* device;
+		Device device;
 
 	};
 

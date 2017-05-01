@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma warning (disable: 4251 4267)
+
 #include <Windows.h>
 #include <string>
 #include <memory>
@@ -21,8 +23,8 @@
 
 template class TFAPI std::function<void(int, FRSKeyState)>;
 template class TFAPI std::function<void(int, int)>;
-typedef std::function<void(int, FRSKeyState)> FRSKEYBOARDFUNC;
-typedef std::function<void(int, int)> FRSRESIZEFUNC;
+typedef std::function<void(int, FRSKeyState)> KeyboardFunc;
+typedef std::function<void(int, int)> ResizeFunc;
 
 namespace FRS {
 
@@ -52,7 +54,7 @@ namespace FRS {
 
 		friend void DestroyWindow(Window window);
 
-		void SetKeyboardCallback(FRSKEYBOARDFUNC func) {
+		void SetKeyboardCallback(KeyboardFunc func) {
 			eventStruct.keyFuncCallBack = func;
 		}
 
@@ -79,8 +81,8 @@ namespace FRS {
 		HICON winIcon; HCURSOR winCursor;
 
 		struct eventFunc{
-			FRSKEYBOARDFUNC keyFuncCallBack{ nullptr };
-			FRSRESIZEFUNC resizeFunc{ nullptr };
+			KeyboardFunc keyFuncCallBack{ nullptr };
+			ResizeFunc resizeFunc{ nullptr };
 		} eventStruct;
 
 		static LRESULT CALLBACK SWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -96,7 +98,7 @@ namespace FRS {
 		FRSWindowState state = WINDOWED);
 
 	//Will make the window havena
-	TFAPI void FRSPollEvents();
+	TFAPI void PollEvents();
 
 
 }
