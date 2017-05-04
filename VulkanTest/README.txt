@@ -11,3 +11,5 @@
 - Require resources:
 	+ vert.spv: SPIR-V Vertex Shader.
 	+ frag.spv: SPIR-V Fragment Shader.
+	
+- Esc to exit/
