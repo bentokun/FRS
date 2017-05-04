@@ -17,6 +17,8 @@ namespace FRS {
 		uint32_t frame = 0;
 		std::chrono::time_point<std::chrono::steady_clock> lTime{};
 
+		float previousFramerate = 0;
+
 		float GetFrameRate();
 	};
 

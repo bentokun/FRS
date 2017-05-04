@@ -162,7 +162,9 @@ namespace FRS {
 	TFSAPI unsigned char **LoadDDS(const char* inpName,
 		int* width,
 		int* height, int* mimMapLevel,
-		VkFormat* vkFormat, char errorMessage[256]);
+		VkFormat* vkFormat, 
+		int* size,
+		char errorMessage[256]);
 
 	TFSAPI void UnloadDDS(unsigned char** block, uint32_t numberMips);
 }

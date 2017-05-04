@@ -8,6 +8,7 @@ namespace FRS {
 		std::string path1, std::string path2) {
 		
 		this->device = device;
+		memset(this->IndexInput.IndexDatas, 0, 25 *sizeof(void*));
 
 		VkShaderModuleCreateInfo vCreateInfo = {};
 
@@ -79,4 +80,33 @@ namespace FRS {
 		bindingsDes = bindingDes;
 	}
 
+	void Destroy(Shader shader) {
+		vkDestroyShaderModule(shader.device.logicalDevice,
+			shader.vertexModule, nullptr);
+		vkDestroyShaderModule(shader.device.logicalDevice,
+			shader.fragModule, nullptr);
+
+		for (uint32_t i = 0; i < 25; i++) {
+			for (uint32_t j = 0; j < 25; j++) {
+				delete shader.UniformSets[i].UniformBindings[j].Range;
+				delete shader.UniformSets[i].UniformBindings[j].Size;
+				delete shader.UniformSets[i].UniformBindings[j].OffSet;
+			}
+		
+			delete shader.UniformSets[i].UniformBindings;
+			delete shader.UniformSets[i].BindingDatas;
+			delete shader.UniformSets[i].BindingSize;
+		}
+
+		delete shader.UniformSets;
+
+		for (uint32_t i = 0; i < 25; i++) {
+			delete shader.VertexInput.VertexBindings[i].Location;
+			
+		}
+
+		delete shader.VertexInput.VertexBindings;
+		delete shader.VertexInput.BindingSize;
+		delete shader.VertexInput.BindingDatas;
+	}
 }

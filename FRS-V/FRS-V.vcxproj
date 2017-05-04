@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="src\Img\DDS.h" />
     <ClInclude Include="src\Input\Controller.h" />
+    <ClInclude Include="src\Vulkan\FRSCM_Reader\TextureReader.h" />
     <ClInclude Include="src\Vulkan\Texture.h" />
     <ClInclude Include="src\Vulkan\Commander.h" />
     <ClInclude Include="src\Vulkan\Assert.h" />
@@ -172,6 +173,7 @@
     <ClCompile Include="src\Vulkan\Commander.cpp" />
     <ClCompile Include="src\Vulkan\ContentManager.cpp" />
     <ClCompile Include="src\Vulkan\Device.cpp" />
+    <ClCompile Include="src\Vulkan\FRSCM_Reader\TextureReader.cpp" />
     <ClCompile Include="src\Vulkan\Game.cpp" />
     <ClCompile Include="src\Vulkan\QueueFamily.cpp" />
     <ClCompile Include="src\Vulkan\SwapChain.cpp" />

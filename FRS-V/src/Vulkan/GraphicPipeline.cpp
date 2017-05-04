@@ -27,14 +27,19 @@ namespace FRS {
 	}
 
 
-	std::vector<Buffer> CreateUniformBufferFromShader(Device device,
+	void CreateUniformBufferFromShader(Device device,
 		DeviceAllocator allocator,
 		Shader shader,
 		GraphicPipeline* pipe,
 		uint32_t& totalSet,
-		std::vector<uint32_t>& sizePerSet) {
+		std::vector<uint32_t>& sizePerSet,
+		std::vector<uint32_t>& sizeTexPerSet) {
 
 		std::vector<Buffer> tBuffers;
+		std::vector<Texture> tTextures;
+		std::vector<VkDescriptorSetLayoutBinding> setLayouts;
+		std::vector<VkDescriptorPoolSize> setPools;
+
 		uint32_t i;
 
 		for (i = 0; i < 25; i++) {
@@ -47,53 +52,97 @@ namespace FRS {
 				uint32_t j = 0;
 
 				std::vector<Buffer> GroupBuffer;
+				std::vector<Texture> GroupTextures;
+
+				uint32_t bufferSize = 0;
+				uint32_t texSize = 0;
 
 				for (j = 0; j < 25; j++) {
 
 					if (shader.UniformSets[i].UniformBindings[j].stage == UNDENTIFIED)
 						break;
 					else {
-					
-						Buffer buffer{};
+						if (shader.UniformSets[i].UniformBindings[j].Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+							
+							bufferSize++;
 
-						CreateBuffer(buffer, device, VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
-							VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-							shader.UniformSets[i].BindingSize[j], true,
-							allocator);
+							Buffer bufferz{};
 
-						buffer.directData = shader.UniformSets[i].BindingDatas[j];
-						buffer.transferSize = shader.UniformSets[i].BindingSize[j];
+							CreateBuffer(bufferz, device, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+								shader.UniformSets[i].BindingSize[j], true,
+								allocator);
 
-						VkDescriptorSetLayoutBinding layout = {};
+							bufferz.length = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
 
-						layout.binding = j;
-						layout.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
-						layout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-						layout.stageFlags = shader.UniformSets[i].UniformBindings[j].stage;
-						layout.pImmutableSamplers = nullptr;
+							for (uint32_t k = 0; k < shader.UniformSets[i].UniformBindings[j].dataArrayLength; k++) {
+								
+								bufferz.range[k] = shader.UniformSets[i].UniformBindings[j].Range[k];
+								bufferz.offset[k] = shader.UniformSets[i].UniformBindings[j].OffSet[k];
 
-						buffer.setUniformLayoutBinding = layout;
+							}
 
-						buffer.poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-						buffer.poolSize.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+							VkDescriptorSetLayoutBinding layout{};
 
-						tBuffers.push_back(buffer);
-						GroupBuffer.push_back(buffer);
+							layout.binding = j;
+							layout.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+							layout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+							layout.stageFlags = shader.UniformSets[i].UniformBindings[j].stage;
+							layout.pImmutableSamplers = nullptr;
+
+							bufferz.setLayoutBinding = layout;
+
+							VkDescriptorPoolSize poolSize{};
+
+							poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+							poolSize.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+							
+							bufferz.setPoolSize = poolSize;
+
+							tBuffers.push_back(bufferz);
+							GroupBuffer.push_back(bufferz);
+						}
+						else
+							if (shader.UniformSets[i].UniformBindings[j].Type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+								
+								texSize++;
+								Texture* tex = static_cast<Texture*>(shader.UniformSets[i].BindingDatas[j]);
+
+								VkDescriptorSetLayoutBinding layout = {};
+
+								if (shader.UniformSets[i].UniformBindings[j].dataArrayLength != tex->GetSamplers().size()) {
+									throw std::runtime_error("Please watch out for the data length. Image already has mipmap");
+								}
+
+								layout.binding = j;
+								layout.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+								layout.descriptorType = shader.UniformSets[i].UniformBindings[j].Type;
+								layout.stageFlags = shader.UniformSets[i].UniformBindings[j].stage;
+								layout.pImmutableSamplers = nullptr;
+
+								tex->setUniformLayoutBinding = layout;
+
+								tex->poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+								tex->poolSize.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
+
+								tTextures.push_back(*tex);
+								GroupTextures.push_back(*tex);
+							}
+						
 					}
 	
 				}
 
-				pipe->CreateUniformDescriptorSetLayout(j, GroupBuffer.data(),
-					GroupBuffer.size());
-
-				sizePerSet.push_back(j);
+				sizeTexPerSet.push_back(texSize);
+				sizePerSet.push_back(bufferSize);
+				pipe->CreateUniformDescriptorSetLayout(tBuffers, tTextures, i);
 			}
-	
+			
 		}
 
 		totalSet = i;
 
-		return tBuffers;
+		pipe->uniformBuffers = tBuffers;
+		pipe->textures = tTextures;
 
 	}
 
@@ -106,6 +155,7 @@ namespace FRS {
 				break;
 			}
 			else {
+
 				Buffer buff;
 				CreateBuffer(buff, device, VK_BUFFER_USAGE_TRANSFER_DST_BIT |
 					VK_BUFFER_USAGE_INDEX_BUFFER_BIT, shader.IndexInput.IndexSize[i],
@@ -232,8 +282,8 @@ namespace FRS {
 
 			pipe->staticBuffers = FRS::CreateVertexBufferFromShader(device, allocator,
 				shader, bindingDes.size());
-			pipe->uniformBuffers = FRS::CreateUniformBufferFromShader(device, allocator, shader,
-				pipe, pipe->totalSet, pipe->sizePerSet);
+			FRS::CreateUniformBufferFromShader(device, allocator, shader,
+				pipe, pipe->totalSet, pipe->sizePerSet, pipe->sizeTexPerSet);
 			pipe->indexBuffers = FRS::CreateIndexbuffer(device, shader, allocator);
 
 			for (auto& buffer : pipe->staticBuffers) {
@@ -252,12 +302,17 @@ namespace FRS {
 		else {
 			for (uint32_t i = 0; i < pipe->totalSet; i++) {
 				std::vector<Buffer> buffers;
+				std::vector<Texture> textures;
 
 				for (uint32_t j = 0; j < pipe->sizePerSet[i]; j++) {
 					buffers.push_back(pipe->uniformBuffers[(i + 1) * j]);
 				}
 
-				pipe->CreateUniformDescriptorSetLayout(buffers.size(), buffers.data(),
+				for (uint32_t j = 0; j < pipe->sizeTexPerSet[i]; j++) {
+					textures.push_back(pipe->textures[(i + 1) * j]);
+				}
+
+				pipe->CreateUniformDescriptorSetLayout(buffers, textures,
 					i);
 			}
 		}

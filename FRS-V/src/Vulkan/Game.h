@@ -53,7 +53,7 @@ namespace FRS {
 
 		Game() {};
 		Game(std::string appName, bool debugMessageEnabled,
-			FRSWindowState state);
+			FRSWindowState state, int windowWidth, int  windowHeight);
 
 		~Game();
 
@@ -98,6 +98,7 @@ namespace FRS {
 		Shader shader;
 
 		FRSWindowState state{};
+		int windowHeight, windowWidth = 0;
 
 		Controller controller{};
 

@@ -30,48 +30,51 @@ namespace FRS {
 			std::string name1,
 			std::string name2);
 
-		friend void Destroy(Shader shader) {
-			vkDestroyShaderModule(shader.device.logicalDevice,
-				shader.vertexModule, nullptr);
-			vkDestroyShaderModule(shader.device.logicalDevice,
-				shader.fragModule, nullptr);
-		}
+		friend void Destroy(Shader shader);
 
 		struct UniformBinding {
 			VkDeviceSize dataArrayLength = 0;
+
+			VkDescriptorType Type;
+			uint32_t *Range = new uint32_t[25];
+			uint32_t *Size = new uint32_t[25];
+			uint32_t *OffSet = new uint32_t[25];
+
 			Stage stage = UNDENTIFIED;
 		};
 
 		struct UniformSet {
-			UniformBinding UniformBindings[25];
-			void*          BindingDatas[25]{ nullptr };
-			uint32_t       BindingSize[25] {0};
+			UniformBinding *UniformBindings = new UniformBinding[25];
+			
+			void**          BindingDatas = new void*[25];
+			uint32_t*       BindingSize = new uint32_t[25];
 
-		} UniformSets[25];
+		} *UniformSets = new UniformSet[25];
 
 		struct VertexBinding {
 
 			struct Loc {
 				VkFormat Format = { VK_FORMAT_UNDEFINED };
 				VkDeviceSize Offset;
-			} Location[25];
+				
+			} *Location = new Loc[25];
 	
 			uint32_t Stride;
 			VkVertexInputRate InputRate;
 		};
 
 		struct VertexInput {
-			VertexBinding VertexBindings[25]{};
-			void*         BindingDatas[25]{ nullptr };
-			uint32_t      BindingSize[25]{ 0 };
+			VertexBinding *VertexBindings = new VertexBinding[25];
+			void**        BindingDatas = new void*[25];
+			uint32_t*      BindingSize = new uint32_t[25];
 
 			uint32_t numbersBindings;
 			uint32_t numberDatas;
 		} VertexInput;
 
 		struct IndexInput {
-			void* IndexDatas[25]{ nullptr };
-			uint32_t IndexSize[25]{ 0 };
+			void** IndexDatas = new void*[25];
+			uint32_t* IndexSize = new uint32_t[25];
 		} IndexInput;
 
 		bool operator == (Shader shader) {

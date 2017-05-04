@@ -1,12 +1,65 @@
 ﻿E:\VS2017-RC\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (FRS-V.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  Commander.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\commander.cpp(512): warning C4018: '<': signed/unsigned mismatch
+  Generating Code...
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+  Compiling...
+  Texture.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
+  GraphicPipeline.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
   Game.cpp
 e:\vsproject\frsml\frs-v\time.h(8): warning C4005: 'TFAPI': macro redefinition
   e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-  Time.cpp
-e:\vsproject\frsml\frs-v\time.h(18): warning C4251: 'FRS::Time::lTime': class 'std::chrono::time_point<std::chrono::steady_clock,std::chrono::steady_clock::duration>' needs to have dll-interface to be used by clients of struct 'FRS::Time'
-  e:\vs2017-rc\vc\tools\msvc\14.10.25017\include\chrono(998): note: see declaration of 'std::chrono::time_point<std::chrono::steady_clock,std::chrono::steady_clock::duration>'
+e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(91): warning C4101: 'height': unreferenced local variable
+e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(92): warning C4101: 'message': unreferenced local variable
+e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(91): warning C4101: 'width': unreferenced local variable
+e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(90): warning C4101: 'format': unreferenced local variable
+e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(91): warning C4101: 'mipLevel': unreferenced local variable
+  Framebuffer.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
+  TextureReader.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\frscm_reader\texturereader.cpp(9): warning C4101: 'texChannels': unreferenced local variable
+  ContentManager.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
+  Buffer.cpp
+e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
+e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
+  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
   Generating Code...
-e:\vsproject\frsml\frs-v\time.cpp(20): warning C4715: 'FRS::Time::GetFrameRate': not all control paths return a value
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(283): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
+  Skipping... (no relevant changes detected)
+  VkExtensions.cpp
+  SwapChain.cpp
+  Shader.cpp
+  ShaderReader.cpp
+  Device.cpp
   FRS-V.vcxproj -> E:\VSProject\FRSML\x64\Debug\FRS.dll
   FRS-V.vcxproj -> E:\VSProject\FRSML\x64\Debug\FRS.pdb (Partial PDB)

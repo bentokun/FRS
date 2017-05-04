@@ -1,4 +1,5 @@
 #include "Time.h"
+#include <iostream>
 
 namespace FRS {
 	float Time::GetFrameRate() {
@@ -12,11 +13,16 @@ namespace FRS {
 		if (durationSec.count() > 0.25f) {
 			float fps = frame / durationSec.count();
 
+			previousFramerate = fps;
+
 			frame = 0;
 			lTime = thisTime;
 
 			return fps;
 		}
+
+		return previousFramerate;
+
 	}
 
 	void AdjustCurrentThreadFPS(int fps) {
@@ -27,7 +33,7 @@ namespace FRS {
 			<double, std::milli> duration = (time - lastTime);
 
 		std::chrono::duration<double,
-			std::milli> durationPerFrame(10);
+			std::milli> durationPerFrame(1/ fps * CLOCKS_PER_SEC);
 
 		if (duration.count() < durationPerFrame.count()) {
 			std::chrono::duration<double, std::milli> delta_ms(durationPerFrame.count() - duration.count());

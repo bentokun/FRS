@@ -70,6 +70,12 @@ namespace FRS {
 			return extent;
 		}
 
+		void LoadWindowIcon(LPWSTR path, int width, int height) {
+			winIcon = static_cast<HICON>(LoadImageW(NULL, path,
+				IMAGE_ICON, width, height, LR_LOADFROMFILE));
+
+		}
+
 	private:
 
 		HWND mainWindow;

@@ -24,7 +24,6 @@ enum TextureType {
 namespace FRS {
 
 	class TFSAPI Texture {
-
 	public:
 
 		void* dataPointer;
@@ -41,7 +40,6 @@ namespace FRS {
 			return subresource;
 		}
 
-
 		uint32_t GetWidth() {
 			return texWidth;
 		}
@@ -54,37 +52,50 @@ namespace FRS {
 			return mainImage;
 		}
 
+		uint32_t GetSize() {
+			return size;
+		}
+
 		Texture() {};
 
 		Texture(Device device, unsigned char** image, int texWidth, int texHeight,
-			int mipmapLevel, int layers,
-			VkImageType type, VkFormat format,
-			bool local, DeviceAllocator alloc);
+			int mipmapLevel, int layers, int size,
+			VkImageType type, VkFormat format, DeviceAllocator alloc);
 			
 		friend void Destroy(Texture texture);
 		friend bool operator == (Texture texture0, Texture texture);
 
-		VkDescriptorSetLayoutBinding& GetUniformDescriptorSetLayoutBinding() {
-			return layoutBinding;
-		}
-
-		VkImage& GetVkImage() {
+		VkDescriptorSetLayoutBinding setUniformLayoutBinding{};
+		VkDescriptorPoolSize poolSize;
+		
+		VkImage &GetVkImage() {
 			return image;
 		}
-		
+
+		VkImageView &GetImageViews() {
+			return imageView;
+		}
+
+		std::vector<VkSampler> &GetSamplers() {
+			return samplers;
+		}
+
+		int GetMipLevel() {
+			return mipLevel;
+		}
+
 	private:
 
 
-		int texWidth, texHeight;
+		int texWidth, texHeight, size;
 		unsigned char** mainImage;
 
-		VkDescriptorSetLayoutBinding  layoutBinding;
 		VkSubresourceLayout           subLayout;
 		VkImageSubresource            subresource;
 
 		VkImage image, realImage = VK_NULL_HANDLE;
 		VkImageView imageView = VK_NULL_HANDLE;
-		VkSampler sampler = VK_NULL_HANDLE;
+		std::vector<VkSampler> samplers = { VK_NULL_HANDLE };
 
 		uint32_t mipLevel, layers;
 

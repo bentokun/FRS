@@ -26,8 +26,14 @@ namespace FRS {
 	}
 
 
-	Game::Game(std::string appName, bool debugMessageEnabled, FRSWindowState state):
-	EnableValidation(debugMessageEnabled){
+	Game::Game(std::string appName, bool debugMessageEnabled, 
+		FRSWindowState state, 
+		int windowWidth,
+		int windowHeight) :
+
+		EnableValidation(debugMessageEnabled),
+		windowWidth(windowWidth),
+		windowHeight(windowHeight){
 		
 		quit = false;
 		CreateInstance(appName, EnableValidation, &instance);
@@ -44,9 +50,7 @@ namespace FRS {
 		while (!quit) {
 
 			PollEvents();
-		
 			AdjustCurrentThreadFPS(60.0f);
-
 			Update();
 
 			//printf("Time: %f \n", (duration + sleep_time).count());
@@ -85,19 +89,16 @@ namespace FRS {
 		int width, height, mipLevel;
 		char message[256];
 
-		CreateVulkanWindow(&window, instance, "Plane rotating around the damn train!", 800, 600,
+		CreateVulkanWindow(&window, instance,
+			"VulkanTest (No Texture)", 
+			windowWidth, 
+			windowHeight,
 			0, 0, state);
 
 		using namespace std::placeholders;
 		//lambda is not my friend, but will try latez
 		window.SetResizeCallback(std::bind(&Game::ResizingHandler, this, _1, _2));
 		window.SetKeyboardCallback(std::bind(&Game::InputHandler, this, _1, _2));
-
-		unsigned char** image =
-			LoadDDS("teacher_test.dds", &width, &height, &mipLevel,
-			&format, message);
-
-		unsigned char* image1 = image[6];
 
 		if (EnableValidation)
 			EnabledConsoleCallback(debugCallbackFunc);
@@ -132,14 +133,25 @@ namespace FRS {
 		shader.UniformSets[0].BindingSize[0] = sizeof(UniformBufferObject);
 		shader.UniformSets[0].BindingSize[1] = sizeof(Color);
 		
+		shader.UniformSets[0].UniformBindings[0].Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		shader.UniformSets[0].UniformBindings[1].Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		
+		shader.UniformSets[0].UniformBindings[0].Range[0] = sizeof(UniformBufferObject);
+		shader.UniformSets[0].UniformBindings[0].OffSet[0] = 0;
+		shader.UniformSets[0].UniformBindings[0].Size[0] = sizeof(UniformBufferObject);
+
+		shader.UniformSets[0].UniformBindings[1].Range[0] = sizeof(Color);
+		shader.UniformSets[0].UniformBindings[1].OffSet[0] = 0;
+		shader.UniformSets[0].UniformBindings[1].Size[0] = sizeof(Color);
+
 		CreateGraphicPipeline(&graphPipeline, device, allocator,
 			swapChain, shader);
+
 		CreateCommander(&commander, swapChain, graphPipeline, device,
 			allocator);
 
 		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
 
-		UnloadDDS(image, mipLevel);
 
 	}
 
@@ -179,11 +191,6 @@ namespace FRS {
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 	
-		//if (this->time.GetFrameRate() > 10) {
-		//	std::cout << this->time.GetFrameRate() << std::endl;
-		//}
-			
-
 		ubo.model = FRSML::Rotate(FRSML::Identity, time * FRSML::ToRadians(90.0f), FRSML::vec3(0, 0, 1));
 		ubo.view = FRSML::LookAt(FRSML::vec3(2.0f, 2.0f, 2.0f), FRSML::vec3(0.0f, 0.0f, 0.0f),
 			FRSML::vec3(0,0,1));
@@ -242,10 +249,6 @@ namespace FRS {
 		vkDeviceWaitIdle(device.logicalDevice);
 		
 		DestroyDeviceAllocator(allocator);
-		//DestroyBuffer(device, &buffer1);
-		//DestroyBuffer(device, &buffer2);
-		//DestroyBuffer(device, &buffer3);
-		//DestroyBuffer(device, &buffer4);
 		DestroyCommander(&commander);
 		DestroyGraphicPipeline(&graphPipeline);
 		DestroySwapchain(swapChain);

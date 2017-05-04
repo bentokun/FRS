@@ -1,10 +1,10 @@
 #pragma once
 
+
 #include <string>
 
-#include "../Texture.h"
-#include "../../Img/DDS.h"
-
+#include "..\..\Img\DDS.h"
+#include "..\Texture.h"
 
 
 #ifdef _WIN32

@@ -106,11 +106,10 @@ namespace FRS {
 
 		void UpdateData(Shader shader);
 
-		/*
 		void SetStaticData(Texture tex, VkDeviceSize offset);
-		void SetData(Texture src, Texture des, uint32_t offsetSrc, uint32_t offsetDst);
+		void SetData(Buffer src, Texture des, uint32_t offsetSrc, uint32_t offsetDst);
 		void LayoutImage(Texture para, VkImageLayout oldLayout,
-			VkImageLayout newLayout);*/
+			VkImageLayout newLayout);
 
 		void CreateUniformDescriptorSets() {
 
@@ -175,7 +174,8 @@ namespace FRS {
 				uniformTransferBuffers,
 				indexTransferBuffers,
 				staticBuffers, uniformBuffers,
-				indexBuffers;
+				indexBuffers,
+				texTransferBuffers;
 
 			std::vector<VkDescriptorSetLayout> desSetLayouts;
 
@@ -183,12 +183,14 @@ namespace FRS {
 			std::vector<std::vector<VkWriteDescriptorSet>> uniformWriteDescriptorSet;
 			std::vector<std::vector<VkDescriptorPoolSize>> uniformDescriptorPoolSize;
 
-			std::vector<Texture>         realTextures, transfererTexture;
+			std::vector<Texture>         realTextures;
 
 			Framebuffers				buffers;
 			Device						device;
 			GraphicPipeline				pipe;
 			Swapchain				    chain;
+
+			DeviceAllocator allocator;
 
 			uint32_t currentBuffer, currentUniformBuffer = 0;
 			uint32_t bufferIndex, transferIndex, texTransIndex, indexIndices = 0;

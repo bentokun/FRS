@@ -4,12 +4,14 @@ namespace FRS {
 
 	Texture::Texture(Device device, unsigned char** image, int texWidth, int texHeight,
 		int mipmapLevel, int layers,
-		VkImageType type, VkFormat format, bool local, DeviceAllocator alloc) :
+		int size,
+		VkImageType type, VkFormat format, DeviceAllocator alloc) :
 		mainImage(image),
 		device(device),
 		allocator(alloc),
 		mipLevel(mipmapLevel),
-		layers(layers)
+		layers(layers),
+		size(size)
 	{
 			VkDeviceSize imageSize = texWidth* texHeight * 4;
 
@@ -51,27 +53,12 @@ namespace FRS {
 
 			int memType;
 
-			if (!local) {
-				VkMemoryPropertyFlags optimal = VK_MEMORY_PROPERTY_HOST_CACHED_BIT |
-					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-
-				VkMemoryPropertyFlags required = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-
-				memType = lamdaFunc(optimal);
-				if (memType = -1) {
-					memType = lamdaFunc(required);
-					FRS_ASSERT(memType == -1, "Memory type failed");
-				}
-			}
-			else {
-				memType = lamdaFunc(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			}
-
+			memType = lamdaFunc(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			
 			this->block = allocator.allocate(mMemReq.size, mMemReq.alignment, memType);
 			vkBindImageMemory(device.logicalDevice, this->image, block.memory, block.offSet);
 
+			
 			/*
 			if (mipmapLevel == 1) {
 				VkImageSubresource subresource = {};
@@ -125,7 +112,55 @@ namespace FRS {
 			
 			*/
 			
+			VkImageViewCreateInfo iCreateInfo = {};
+			iCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			iCreateInfo.image = this->image;
+			iCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			iCreateInfo.subresourceRange.baseMipLevel = 0;
+			iCreateInfo.subresourceRange.levelCount = mipLevel;
+			iCreateInfo.subresourceRange.baseArrayLayer = 0;
+			iCreateInfo.subresourceRange.layerCount = 1;
+			iCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			iCreateInfo.format = format;
+				
+			vkCreateImageView(device.logicalDevice, &iCreateInfo, nullptr,
+				&imageView);
 
+			samplers.resize(3);
+
+			VkSamplerCreateInfo samplerInfo = {};
+			samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			samplerInfo.magFilter = VK_FILTER_LINEAR;
+			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.anisotropyEnable = VK_FALSE;
+			samplerInfo.maxAnisotropy = 1.0f;
+			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			samplerInfo.unnormalizedCoordinates = VK_FALSE;
+			samplerInfo.compareEnable = VK_FALSE;
+			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			samplerInfo.minLod = 0;
+			samplerInfo.maxLod = 0;
+			samplerInfo.mipLodBias = 0;
+			
+			vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
+				&samplers[0]);
+
+			samplerInfo.maxLod = mipLevel;
+
+			vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
+				&samplers[1]);
+
+			samplerInfo.anisotropyEnable = VK_TRUE;
+			samplerInfo.maxAnisotropy = 16;
+
+			vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
+				&samplers[3]);
+
+			
 	}
 	
 

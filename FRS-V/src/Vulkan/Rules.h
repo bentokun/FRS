@@ -45,3 +45,4 @@ enum FRS_STATE {
 	SUCCESS = 1,
 	FAILURE = 0
 };
+

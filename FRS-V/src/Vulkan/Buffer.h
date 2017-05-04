@@ -207,10 +207,14 @@ namespace FRS {
 			mMemProp = buffer.mMemProp;
 			directData = buffer.directData;
 			transferSize = buffer.transferSize;
-			setUniformLayoutBinding = buffer.setUniformLayoutBinding;
+			setLayoutBinding = buffer.setLayoutBinding;
+
+			range = buffer.range;
+			offset = buffer.offset;
 
 			block = buffer.block;
 			deviceLocal = buffer.deviceLocal;	
+			setPoolSize = buffer.setPoolSize;
 
 		}
 
@@ -228,13 +232,16 @@ namespace FRS {
 			mMemReq = buffer.mMemReq;
 			mMemProp = buffer.mMemProp;
 
+			setLayoutBinding = buffer.setLayoutBinding;
 			block = buffer.block;
 			deviceLocal = buffer.deviceLocal;
-			setUniformLayoutBinding = buffer.setUniformLayoutBinding;
-			poolSize = buffer.poolSize;
-
+			range = buffer.range;
+			offset = buffer.offset;
+			length = buffer.length;
+			dstSet = buffer.dstSet;
 			directData = buffer.directData;
 			transferSize = buffer.transferSize;
+			setPoolSize = buffer.setPoolSize;
 		}
 
 		/*
@@ -277,9 +284,13 @@ namespace FRS {
 			nBuffer.buffer = tBuffer.buffer;
 			nBuffer.directData = tBuffer.directData;
 			nBuffer.transferSize = tBuffer.transferSize;
-			nBuffer.setUniformLayoutBinding = tBuffer.setUniformLayoutBinding;
-			nBuffer.poolSize = tBuffer.poolSize;
-
+			nBuffer.length = tBuffer.length;
+			nBuffer.dstSet = tBuffer.dstSet;
+			nBuffer.offset = tBuffer.offset;
+			nBuffer.range = tBuffer.range;	
+			nBuffer.setLayoutBinding = tBuffer.setLayoutBinding;
+			nBuffer.setPoolSize = tBuffer.setPoolSize;
+		
 			return nBuffer;
 		}
 		
@@ -311,10 +322,7 @@ namespace FRS {
 			return bindingDes;
 		}
 		*/
-		VkDescriptorSetLayoutBinding GetUniformDescriptorSetLayoutBinding() {
-			return setUniformLayoutBinding;
-		}
-
+	
 		VkBuffer buffer;
 
 		bool operator == (Buffer& buff) {
@@ -331,11 +339,14 @@ namespace FRS {
 			return block;
 		}
 
-		uint32_t offset = 0;
+		std::vector<uint32_t> offset = { 0 };
 		uint32_t transferSize = 0;
+		std::vector<uint32_t> range = { 0 };
+		uint32_t length = { 1 };
+		uint32_t dstSet = { 0 };
 
-		VkDescriptorPoolSize poolSize {};
-		VkDescriptorSetLayoutBinding setUniformLayoutBinding{};
+		VkDescriptorSetLayoutBinding setLayoutBinding{};
+		VkDescriptorPoolSize setPoolSize{};
 
 		void* directData = nullptr;
 

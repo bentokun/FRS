@@ -10,7 +10,7 @@
 #include "Rules.h"
 #include "Device.h"
 #include "FRSCM_Reader\ShaderReader.h"
-//#include "FRSCM_Reader\TextureReader.h"
+#include "FRSCM_Reader\TextureReader.h"
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
@@ -39,7 +39,6 @@ namespace FRS {
 			return shader;
 		}
 
-		/*
 		Texture Load(std::string path) {
 
 			Texture texture = ReadTexture(device, allocator,
@@ -48,7 +47,7 @@ namespace FRS {
 			textures.push_back(texture);
 			return texture;
 
-		}*/
+		}
 
 
 		void Unload(Shader para) {
@@ -68,7 +67,6 @@ namespace FRS {
 
 		}
 
-		/*
 		void Unload(Texture para) {
 			auto textureToFind = std::find(
 				textures.begin(), textures.end(), para
@@ -82,14 +80,14 @@ namespace FRS {
 			else {
 				std::cout << "Haven't destroy shader!" << std::endl;
 			}
-		}*/
+		}
 
 	private:
 
 		Device device;
 		DeviceAllocator allocator;
 		std::vector<Shader> shaders;
-		//std::vector<Texture> textures;
+		std::vector<Texture> textures;
 
 	};
 

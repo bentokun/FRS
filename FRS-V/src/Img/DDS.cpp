@@ -5,7 +5,7 @@ namespace FRS {
 	unsigned char **LoadDDS(const char* inpName,
 		int* width,
 		int* height, int* mimMapLevel,
-		VkFormat* vkFormat, char errorMessage[256])
+		VkFormat* vkFormat, int* size, char errorMessage[256])
 	{
 		int magic;
 		unsigned char* temp = nullptr;
@@ -27,6 +27,7 @@ namespace FRS {
 			*width = header.width;
 			*height = header.height;
 			*mimMapLevel = header.mipmapCount;
+			*size = header.size;
 
 			DDSFormatType format = {};
 
