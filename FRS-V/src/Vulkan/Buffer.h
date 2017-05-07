@@ -189,8 +189,10 @@ namespace FRS {
 		};
 
 		//Vertex of uniform?
-		friend void CreateBuffer(Buffer &buffer, Device &device, VkBufferUsageFlags usage,
-			VkDeviceSize size, bool localQ, DeviceAllocator allocator);
+		friend void CreateBuffer(Buffer &buffer,
+			Device &device, VkBufferUsageFlags usage,
+			VkDeviceSize size, bool localQ, 
+			DeviceAllocator* allocator);
 
 		Buffer(Buffer &&buffer) {
 
@@ -355,7 +357,7 @@ namespace FRS {
 		
 		Block block;
 
-		DeviceAllocator mAllocator{};
+		DeviceAllocator* mAllocator{};
 		VkDeviceSize mSize = 0;
 		VkBufferUsageFlags mUsageFlag = VK_NULL_HANDLE;
 		VkMemoryRequirements mMemReq{};

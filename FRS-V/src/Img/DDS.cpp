@@ -27,8 +27,7 @@ namespace FRS {
 			*width = header.width;
 			*height = header.height;
 			*mimMapLevel = header.mipmapCount;
-			*size = header.size;
-
+			
 			DDSFormatType format = {};
 
 			int imageBytes = header.width * header.height;
@@ -85,10 +84,11 @@ namespace FRS {
 
 				if (format == DDS_FORMAT_RGBA8) {
 					imageBytes = w*h * 4;
+					*size += imageBytes;
 				}
 				else {
 					imageBytes = ((w + 3) / 4)*((h + 3) / 4)*blockSize;
-
+					*size += imageBytes;
 				}
 
 				if (i == 0) {

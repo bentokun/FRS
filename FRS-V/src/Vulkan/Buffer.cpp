@@ -26,7 +26,7 @@ namespace FRS {
 		Block block;
 		block.free = true;
 		block.offSet = 0;
-		block.size = 0;
+		block.size = size;
 		
 		VkResult result = vkAllocateMemory(mDevice.logicalDevice, &info,
 			nullptr, &mMem);
@@ -42,7 +42,6 @@ namespace FRS {
 
 		if ((properties.memoryTypes[mMemoryTypeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
 			vkMapMemory(mDevice.logicalDevice, block.memory, block.offSet, VK_WHOLE_SIZE, 0 , &dataPointer);
-			vkUnmapMemory(mDevice.logicalDevice, block.memory);
 		}
 
 		mBlocks.emplace_back(block);
@@ -51,61 +50,59 @@ namespace FRS {
 	void Chunk::Deallocated(Block const &block) {
 
 		auto findABlock{ std::find(mBlocks.begin(), mBlocks.end(), block) };
-		FRS_S_ASSERT(findABlock != mBlocks.end());
+		FRS_S_ASSERT(findABlock == mBlocks.end())
 		findABlock->free = true;
+
 	}
 
 	bool Chunk::Allocate(VkDeviceSize size, VkDeviceSize align, Block& block) {
-		if (size > mSize) {
-			std::cout << "Cant allocate!" << std::endl;
+		if (size > mSize)
 			return false;
-		}
 
-		for (auto mBlock : mBlocks) {
-			if (mBlock.free) {
-				uint32_t newSize = mBlock.size;
+		for (uint32_t i = 0; i < mBlocks.size(); ++i) {
+			if (mBlocks[i].free) {
+				// Compute virtual size after taking care about offsetAlignment
+				uint32_t newSize = mBlocks[i].size;
 
-				//Align the block size
-				//Remove the align part and add up the module 
+				if (mBlocks[i].offSet % align != 0)
+					newSize -= align - mBlocks[i].offSet % 
+						align;
 
-				if (mBlock.offSet % align != 0)
-					newSize -= align - mBlock.offSet % align;
-
+				// If match
 				if (newSize >= size) {
-					mBlock.size = newSize;
-					if (mBlock.offSet % align != 0)
-						mBlock.offSet += align - mBlock.offSet % align;
-				}
 
-				if (dataPointer != nullptr)
-					//Point to the offset
-					mBlock.ptr = (char*)dataPointer + block.offSet;
-				}
+					// We compute offset and size that care about alignment (for this Block)
+					mBlocks[i].size = newSize;
+					if (mBlocks[i].offSet % align != 0)
+						mBlocks[i].offSet += align
+						- mBlocks[i].offSet % align;
 
-				if (mBlock.size == size) {
-					mBlock.free = false;
-					block = mBlock;
+					// Compute the ptr address
+					if (dataPointer != nullptr)
+						mBlocks[i].ptr = (char*)dataPointer
+						+ mBlocks[i].offSet;
+
+					// if perfect match
+					if (mBlocks[i].size == size) {
+						mBlocks[i].free = false;
+						block = mBlocks[i];
+						return true;
+					}
+
+					Block nextBlock;
+					nextBlock.free = true;
+					nextBlock.offSet = mBlocks[i].offSet + size;
+					nextBlock.memory = this->mMem;
+					nextBlock.size = mBlocks[i].size - size;
+					mBlocks.emplace_back(nextBlock); // We add the newBlock
+
+					mBlocks[i].size = size;
+					mBlocks[i].free = false;
+
+					block = mBlocks[i];
 					return true;
 				}
-
-				//If the size allocate match then exit, else
-				//Allocate it to next block
-				Block next;
-				next.free = true;
-				next.offSet = mBlock.offSet + size;
-				next.memory = mMem;
-				next.size = mBlock.size - size;
-				mBlocks.emplace_back(next);
-
-
-				mBlock.size = size;
-				mBlock.free = false;
-
-				block = mBlock;
-
-		
-				return true;
-			
+			}
 		}
 
 		return false;
@@ -173,7 +170,7 @@ namespace FRS {
 		int memType) {
 		
 		size = (size > mSize) ? nextPowerOfTwo(size) : mSize;
-
+		
 		return Chunk(mDevice, size, memType);
 	}
 
@@ -228,8 +225,10 @@ namespace FRS {
 		}
 	}
 
-	void CreateBuffer(Buffer &buffer, Device &device, VkBufferUsageFlags usage,
-		VkDeviceSize size, bool localQ, DeviceAllocator allocator) 
+	void CreateBuffer(Buffer &buffer, Device &device,
+		VkBufferUsageFlags usage,
+		VkDeviceSize size, bool localQ, 
+		DeviceAllocator* allocator) 
 
 	{
 		
@@ -282,9 +281,9 @@ namespace FRS {
 			memType = lamdaFunc(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		}
 
-		buffer.block = buffer.mAllocator.allocate(buffer.mMemReq.size, buffer.mMemReq.alignment, memType);
-		vkBindBufferMemory(device.logicalDevice, buffer.buffer, buffer.block.memory, buffer.block.offSet);
+		buffer.block = allocator->allocate(buffer.mMemReq.size, buffer.mMemReq.alignment, memType);
 
+		vkBindBufferMemory(device.logicalDevice, buffer.buffer, buffer.block.memory, buffer.block.offSet);
 	}
 
 	void DestroyBuffer(Device device, Buffer* Tbuffer) {
@@ -292,8 +291,7 @@ namespace FRS {
 		vkDestroyBuffer(device.logicalDevice, Tbuffer->buffer,
 			nullptr);
 
-		vkFreeMemory(device.logicalDevice, Tbuffer->block.memory, nullptr);
-
+		Tbuffer->mAllocator->deallocate(Tbuffer->block);
 	}
 
 

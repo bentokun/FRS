@@ -63,13 +63,14 @@ namespace FRS {
 	struct Vertex {
 		FRSML::vec2 pos;
 		FRSML::vec3 color;
+		FRSML::vec2 normal;
 	};
 
 	const std::vector<Vertex> vertices = {
-		{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
-		{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
-		{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
+		{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
+		{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } }
 	};
 
 	const std::vector<uint16_t> indices = {
@@ -95,6 +96,7 @@ namespace FRS {
 			windowHeight,
 			0, 0, state);
 
+		//Meaningless, the allocation thing is still seperate 
 		using namespace std::placeholders;
 		//lambda is not my friend, but will try latez
 		window.SetResizeCallback(std::bind(&Game::ResizingHandler, this, _1, _2));
@@ -108,8 +110,9 @@ namespace FRS {
 		FRSImageComponent components[4] = { VK_COMPONENT_SWIZZLE_IDENTITY,
 			VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY,VK_COMPONENT_SWIZZLE_IDENTITY };
 
-		CreateContentManager(&manager, device, allocator);
+		CreateContentManager(&manager, device, &allocator);
 		Load();
+
 		CreateSwapchain(&swapChain, device, window, components, false);
 
 		shader.VertexInput.VertexBindings[0].InputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -121,6 +124,8 @@ namespace FRS {
 		shader.VertexInput.VertexBindings[0].Location[0].Offset = offsetof(Vertex, pos);
 		shader.VertexInput.VertexBindings[0].Location[1].Offset = offsetof(Vertex, color);
 		shader.VertexInput.VertexBindings[0].Location[1].Format = VK_FORMAT_R32G32B32_SFLOAT;
+		shader.VertexInput.VertexBindings[0].Location[2].Offset = offsetof(Vertex, normal);
+		shader.VertexInput.VertexBindings[0].Location[2].Format = VK_FORMAT_R32G32_SFLOAT;
 
 		shader.IndexInput.IndexDatas[0] = (void*)(indices.data());
 		shader.IndexInput.IndexSize[0] = sizeof(indices[0]) * indices.size();
@@ -129,6 +134,12 @@ namespace FRS {
 		shader.UniformSets[0].UniformBindings[1].dataArrayLength = 1;
 		shader.UniformSets[0].UniformBindings[0].stage = VERTEX_SHADER_STAGE;
 		shader.UniformSets[0].UniformBindings[1].stage = VERTEX_SHADER_STAGE;
+
+		shader.UniformSets[0].UniformBindings[2].dataArrayLength = 3;
+		shader.UniformSets[0].UniformBindings[2].stage = FRAGMENT_SHADER_STAGE;
+		shader.UniformSets[0].UniformBindings[2].Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		shader.UniformSets[0].BindingDatas[2] = &tex;
 
 		shader.UniformSets[0].BindingSize[0] = sizeof(UniformBufferObject);
 		shader.UniformSets[0].BindingSize[1] = sizeof(Color);
@@ -144,11 +155,11 @@ namespace FRS {
 		shader.UniformSets[0].UniformBindings[1].OffSet[0] = 0;
 		shader.UniformSets[0].UniformBindings[1].Size[0] = sizeof(Color);
 
-		CreateGraphicPipeline(&graphPipeline, device, allocator,
+		CreateGraphicPipeline(&graphPipeline, device, &allocator,
 			swapChain, shader);
 
 		CreateCommander(&commander, swapChain, graphPipeline, device,
-			allocator);
+			&allocator);
 
 		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
 
@@ -163,9 +174,10 @@ namespace FRS {
 		RecreateSwapchain(&swapChain, window, components);
 		vkDeviceWaitIdle(device.logicalDevice);
 
-		CreateGraphicPipeline(&graphPipeline, device,allocator, swapChain, shader);
+		CreateGraphicPipeline(&graphPipeline, device,
+			&allocator, swapChain, shader);
 		CreateCommander(&commander, swapChain, graphPipeline, device,
-			allocator);
+			&allocator);
 
 		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
 	
@@ -177,6 +189,7 @@ namespace FRS {
 
 	void Game::Load() {
 		shader = manager.Load("vert.spv", "frag.spv");
+		tex = manager.Load("teacher_test.dds");
 	}
 
 	void Game::Unload() {

@@ -2,23 +2,28 @@
 
 namespace FRS {
 
-	Texture ReadTexture(Device device, DeviceAllocator allocator,
+	Texture ReadTexture(Device device, DeviceAllocator* allocator,
 		TextureType type,
 		std::string path) {
 
-		int width, height, texChannels;
-		int mipLevel, size;
+		int width, height, texChannels = 0;
+		int mipLevel, size = 0;
 		VkFormat format;
 
-		unsigned char** imageData = nullptr;
+		void* imageData = nullptr;
 		char errorMess[256] = {};
 
-		if (path.substr(path.find_last_of('.') + 1) == "dds") {
-			imageData = LoadDDS(path.c_str(), &width, &height, &mipLevel,
-				&format, &size, errorMess);
-		}
+		gli::texture2d tex(gli::load(path));
 
-		return Texture(device, imageData, width, height,
+		width = tex.extent().x;
+		height = tex.extent().y;
+		mipLevel = tex.levels();
+		format = (VkFormat)tex.format();
+		size = tex.size();
+
+		imageData = tex.data();
+
+		return Texture(tex, device, imageData, width, height,
 			mipLevel, 1, size,
 			(VkImageType)type, format, allocator);
 	}

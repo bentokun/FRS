@@ -27,7 +27,8 @@ namespace FRS {
 		GraphicPipeline() {};
 
 		friend void
-			CreateUniformBufferFromShader(Device device, DeviceAllocator allocator,
+			CreateUniformBufferFromShader(Device device,
+				DeviceAllocator* allocator,
 				Shader shader,
 				GraphicPipeline* pipe,
 				uint32_t& totalSet,
@@ -36,7 +37,7 @@ namespace FRS {
 
 		friend void CreateGraphicPipeline(GraphicPipeline* pipe,
 			Device device, 
-			DeviceAllocator allocator,
+			DeviceAllocator* allocator,
 			Swapchain swapChain,
 			Shader shader);
 
@@ -91,19 +92,13 @@ namespace FRS {
 			return textures;
 		}
 
-		void CreateUniformDescriptorSetLayout(
-			std::vector<Buffer> buffers,
-			/*uint32_t texSize, Texture textures[],*/
-			std::vector<Texture> texs,
-			uint32_t setNumber) {
+		void GenerateWriteDescriptor(std::vector<Buffer> buffers,
+			std::vector<Texture> texs, uint32_t set) {
 
-			std::vector<VkDescriptorSetLayoutBinding> bindings;
 			std::vector<VkWriteDescriptorSet> writeSets;
 			std::vector<VkDescriptorPoolSize> uniformPoolSize;
 
 			for (uint32_t i = 0; i < buffers.size(); i++) {
-				bindings.push_back(buffers[i].setLayoutBinding);
-
 				VkDescriptorBufferInfo bufferInfo = {};
 				bufferInfo.buffer = buffers[i].buffer;
 
@@ -112,7 +107,7 @@ namespace FRS {
 				for (uint32_t j = 0; j < buffers[i].length; j++) {
 					bufferInfo.offset = buffers[i].offset[j];
 					bufferInfo.range = buffers[i].range[j];
-				
+
 					bufferInfos.push_back(bufferInfo);
 				}
 
@@ -127,21 +122,20 @@ namespace FRS {
 				descriptorSet.dstArrayElement = 0;
 
 				writeSets.push_back(descriptorSet);
-			
+
 				uniformPoolSize.push_back(buffers[i].setPoolSize);
 			}
 
 			for (uint32_t i = 0; i < texs.size(); i++) {
-				bindings.push_back(texs[i].setUniformLayoutBinding);
-
 				VkDescriptorImageInfo imageInfo = {};
+
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				imageInfo.imageView = texs[i].GetImageViews();
 
 				std::vector<VkDescriptorImageInfo> imageInfos;
-				for (uint32_t j = 0; j < texs[i].GetSamplers().size(); j++) {
-					imageInfo.sampler = texs[i].GetSamplers()[i];
-
+				std::vector<VkSampler> samplers = texs[i].GetSamplers();
+				for (uint32_t j = 0; j < 3; j++) {
+					imageInfo.sampler = texs[i].GetSamplers()[j];
 					imageInfos.push_back(imageInfo);
 				}
 
@@ -149,7 +143,7 @@ namespace FRS {
 
 				VkWriteDescriptorSet descriptorSet{};
 				descriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorSet.descriptorCount = texs[i].GetSamplers().size();
+				descriptorSet.descriptorCount = 3;
 				descriptorSet.pImageInfo = desImageHandle[desImageHandle.size() - 1].data();
 				descriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				descriptorSet.dstBinding = texs[i].setUniformLayoutBinding.binding;
@@ -159,10 +153,27 @@ namespace FRS {
 
 				uniformPoolSize.push_back(texs[i].poolSize);
 			}
-		
+
 			uniformWriteDescriptorSets.push_back(writeSets);
 			uniformPoolSizes.push_back(uniformPoolSize);
+		}
 
+		void CreateUniformDescriptorSetLayout(
+			std::vector<Buffer> buffers,
+			/*uint32_t texSize, Texture textures[],*/
+			std::vector<Texture> texs,
+			uint32_t setNumber) {
+
+			std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+			for (uint32_t i = 0; i < buffers.size(); i++) {
+				bindings.push_back(buffers[i].setLayoutBinding);
+			}
+
+			for (uint32_t i = 0; i < texs.size(); i++) {
+				bindings.push_back(texs[i].setUniformLayoutBinding);
+			}
+		
 			VkDescriptorSetLayoutCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			createInfo.bindingCount = bindings.size();
@@ -170,7 +181,7 @@ namespace FRS {
 			
 			VkDescriptorSetLayout uniformDesLayout;
 
-			vkCreateDescriptorSetLayout(device.logicalDevice,
+			VkResult res = vkCreateDescriptorSetLayout(device.logicalDevice,
 				&createInfo, nullptr, &uniformDesLayout);
 
 			uniformDesLayouts.push_back(uniformDesLayout);
@@ -181,6 +192,8 @@ namespace FRS {
 		std::vector<uint32_t> sizePerSet;
 		std::vector<uint32_t> sizeTexPerSet;
 
+		std::vector<std::vector<VkDescriptorBufferInfo>> desBufferHandle;
+		std::vector<std::vector<VkDescriptorImageInfo>> desImageHandle;
 	private:
 		
 		std::vector<Buffer> realBuffers;
@@ -196,16 +209,16 @@ namespace FRS {
 
 		std::vector<std::vector<VkWriteDescriptorSet>> uniformWriteDescriptorSets;
 		std::vector<std::vector<VkDescriptorPoolSize>> uniformPoolSizes;
-		std::vector<std::vector<VkDescriptorBufferInfo>> desBufferHandle;
-		std::vector<std::vector<VkDescriptorImageInfo>> desImageHandle;
+		
 
 		Device device;
-		DeviceAllocator allocator;
+		DeviceAllocator* allocator;
 
 	};
 
 	TFAPI std::vector<Buffer>
-		CreateVertexBufferFromShader(Device device, DeviceAllocator allocator,
+		CreateVertexBufferFromShader(Device device,
+			DeviceAllocator* allocator,
 			Shader shader,
 			uint32_t totalSize);
 

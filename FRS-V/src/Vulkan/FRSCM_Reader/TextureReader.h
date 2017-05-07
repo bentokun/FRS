@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "..\..\Img\DDS.h"
+#include <gli\gli.hpp>
 #include "..\Texture.h"
 
 
@@ -17,7 +17,7 @@
 
 namespace FRS {
 
-	Texture TFSAPI ReadTexture(Device device, DeviceAllocator allocator,
+	Texture TFSAPI ReadTexture(Device device, DeviceAllocator* allocator,
 		TextureType type,
 		std::string path);
 

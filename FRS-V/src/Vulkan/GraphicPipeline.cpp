@@ -3,7 +3,7 @@
 namespace FRS {
 
 	std::vector<Buffer> CreateVertexBufferFromShader(Device device,
-		DeviceAllocator allocator,
+		DeviceAllocator* allocator,
 		Shader shader,
 		uint32_t totalSize) {
 
@@ -28,7 +28,7 @@ namespace FRS {
 
 
 	void CreateUniformBufferFromShader(Device device,
-		DeviceAllocator allocator,
+		DeviceAllocator* allocator,
 		Shader shader,
 		GraphicPipeline* pipe,
 		uint32_t& totalSet,
@@ -109,9 +109,6 @@ namespace FRS {
 
 								VkDescriptorSetLayoutBinding layout = {};
 
-								if (shader.UniformSets[i].UniformBindings[j].dataArrayLength != tex->GetSamplers().size()) {
-									throw std::runtime_error("Please watch out for the data length. Image already has mipmap");
-								}
 
 								layout.binding = j;
 								layout.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
@@ -121,7 +118,7 @@ namespace FRS {
 
 								tex->setUniformLayoutBinding = layout;
 
-								tex->poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+								tex->poolSize.type = shader.UniformSets[i].UniformBindings[j].Type;
 								tex->poolSize.descriptorCount = shader.UniformSets[i].UniformBindings[j].dataArrayLength;
 
 								tTextures.push_back(*tex);
@@ -132,9 +129,11 @@ namespace FRS {
 	
 				}
 
+				pipe->CreateUniformDescriptorSetLayout(GroupBuffer, GroupTextures, i);
+
 				sizeTexPerSet.push_back(texSize);
 				sizePerSet.push_back(bufferSize);
-				pipe->CreateUniformDescriptorSetLayout(tBuffers, tTextures, i);
+				
 			}
 			
 		}
@@ -147,7 +146,7 @@ namespace FRS {
 	}
 
 	std::vector<Buffer> CreateIndexbuffer(Device device, Shader shader,
-		DeviceAllocator allocator) {
+		DeviceAllocator* allocator) {
 		std::vector<Buffer> tBuffers;
 
 		for (uint32_t i = 0; i < 25; i++) {
@@ -173,7 +172,7 @@ namespace FRS {
 
 	void CreateGraphicPipeline(GraphicPipeline* pipe,
 		Device device,
-		DeviceAllocator allocator,
+		DeviceAllocator* allocator,
 		Swapchain swapChain,
 		Shader shader) {
 
@@ -450,6 +449,10 @@ namespace FRS {
 			vkDestroyDescriptorSetLayout(pipe->device.logicalDevice,
 				pipe->uniformDesLayouts[i], nullptr);
 			pipe->uniformDesLayouts[i] = VK_NULL_HANDLE;
+		}
+
+		for (int i = 0; i < pipe->textures.size(); i++) {
+			FinallyDestroyTexture(pipe->textures[i]);
 		}
 
 		pipe->uniformDesLayouts.resize(0);

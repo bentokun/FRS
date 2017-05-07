@@ -26,10 +26,10 @@ namespace FRS {
 	public:
 
 		ContentManager() = default;
-		ContentManager(Device device, DeviceAllocator allocator);
+		ContentManager(Device device, DeviceAllocator* allocator);
 
 		friend void CreateContentManager(ContentManager* manager,
-			Device device, DeviceAllocator allocator);
+			Device device, DeviceAllocator* allocator);
 
 		Shader Load(std::string path, std::string path2) {
 
@@ -67,25 +67,11 @@ namespace FRS {
 
 		}
 
-		void Unload(Texture para) {
-			auto textureToFind = std::find(
-				textures.begin(), textures.end(), para
-			);
-
-			if (textureToFind != textures.end()) {
-				std::cout << "Destroyed!" << std::endl;
-				Destroy(para);
-				textures.erase(textureToFind);
-			}
-			else {
-				std::cout << "Haven't destroy shader!" << std::endl;
-			}
-		}
 
 	private:
 
 		Device device;
-		DeviceAllocator allocator;
+		DeviceAllocator* allocator;
 		std::vector<Shader> shaders;
 		std::vector<Texture> textures;
 

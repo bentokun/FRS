@@ -6,7 +6,7 @@ namespace FRS {
 	Commander::Commander(Swapchain swapChain,
 		GraphicPipeline pipeline,
 		Device device,
-		DeviceAllocator allocator):
+		DeviceAllocator* allocator):
 	allocator(allocator){
 
 		if (commandPool != VK_NULL_HANDLE) {
@@ -181,7 +181,7 @@ namespace FRS {
 				throw std::runtime_error("Pass data pointer may fail");
 			}
 
-			SetIndexData(buffer, 0,
+			SetIndexData(buffer, buffer.GetBlock().offSet,
 				buffer.transferSize, buffer.directData);
 		}
 
@@ -189,10 +189,11 @@ namespace FRS {
 	}
 
 
-	void CreateCommander(Commander* commander, Swapchain swapChain,
+	void CreateCommander(Commander* commander, 
+		Swapchain swapChain,
 		GraphicPipeline pipeline,
 		Device device,
-		DeviceAllocator allocator) {
+		DeviceAllocator* allocator) {
 
 		bool haveDestroy = false;
 
@@ -225,8 +226,6 @@ namespace FRS {
 		commander->pipe = pipeline;
 		commander->chain = swapChain;
 		commander->bufferIndex = commander->transferIndex = commander->indexIndices = 0;
-		commander->uniformWriteDescriptorSet = commander->pipe.GetWriteDescriptorLayout();
-		commander->uniformDescriptorPoolSize = commander->pipe.GetDescriptorPoolSize();
 		commander->desSetLayouts = commander->pipe.GetUniformDescriptorSetLayout();
 
 		commander->staticBuffers = commander->pipe.GetStaticBuffer();
@@ -237,6 +236,7 @@ namespace FRS {
 		commander->staticTransferBuffers.resize(commander->staticBuffers.size());
 		commander->uniformTransferBuffers.resize(commander->uniformBuffers.size());
 		commander->indexTransferBuffers.resize(commander->indexBuffers.size());
+		commander->texTransferBuffers.resize(commander->realTextures.size());
 		commander->textureTransfererCmdBuff.resize(commander->realTextures.size());
 
 		for (uint32_t i = 0; i <commander->staticBuffers.size(); i++) {
@@ -365,8 +365,6 @@ namespace FRS {
 		FRS_S_ASSERT(res2 != VK_SUCCESS);
 		FRS_S_ASSERT(res3 != VK_SUCCESS);
 		
-		commander->CreateUniformDescriptorSets();
-
 		for (auto& buffer : commander->staticBuffers) {
 
 			if (buffer.directData == nullptr) {
@@ -394,7 +392,31 @@ namespace FRS {
 			}
 
 			commander->SetStaticData(tex, 0);
+			tex.CreateSampler();
+
 		}
+
+		for (uint32_t i = 0; i < commander->pipe.totalSet; i++) {
+			std::vector<Buffer> gBuffers;
+			std::vector<Texture> gTextures;
+			
+			//They won't be messed up, since they were push_back in order
+			for (uint32_t j = 0; j < commander->pipe.sizePerSet[i]; j++) {
+				gBuffers.push_back(commander->uniformBuffers[j]);
+			}
+
+			for (uint32_t j = 0; j < commander->pipe.sizeTexPerSet[i]; j++) {
+				gTextures.push_back(commander->realTextures[j]);
+
+			}
+
+			commander->pipe.GenerateWriteDescriptor(gBuffers, gTextures, i);
+		}
+
+		commander->uniformWriteDescriptorSet = commander->pipe.GetWriteDescriptorLayout();
+		commander->uniformDescriptorPoolSize = commander->pipe.GetDescriptorPoolSize();
+
+		commander->CreateUniformDescriptorSets();
 
 	}
 
@@ -423,7 +445,8 @@ namespace FRS {
 
 		vkResetFences(device.logicalDevice, 1, &dataTransferFence);
 
-		VkResult result = vkQueueSubmit(graphicQueue, 1, &submitInfo, dataTransferFence);
+		VkResult result = vkQueueSubmit(graphicQueue,
+			1, &submitInfo, dataTransferFence);
 
 		FRS_S_ASSERT(result != VK_SUCCESS);
 
@@ -433,8 +456,10 @@ namespace FRS {
 
 		vkQueueWaitIdle(graphicQueue);
 
-		vkWaitForFences(device.logicalDevice, 1, &dataTransferFence,
-			true, (uint64_t)std::numeric_limits<uint64_t>::max);
+		vkWaitForFences(device.logicalDevice,
+			1, &dataTransferFence,
+			true,
+			(uint64_t)std::numeric_limits<uint64_t>::max);
 
 		vkResetFences(device.logicalDevice, 1, &dataTransferFence);
 
@@ -442,7 +467,8 @@ namespace FRS {
 	}
 
 	void Commander::LayoutImage(Texture para,VkImageLayout oldLayout,
-		VkImageLayout newLayout) {
+		VkImageLayout newLayout, uint32_t baseLevel, uint32_t levelCount, VkPipelineStageFlags srcStage,
+		VkPipelineStageFlags dstStage) {
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -469,16 +495,87 @@ namespace FRS {
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.image = para.GetVkImage();
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseMipLevel = baseLevel;
+		barrier.subresourceRange.levelCount = levelCount;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
+		switch (oldLayout)
+		{
+			case VK_IMAGE_LAYOUT_UNDEFINED:
+				barrier.srcAccessMask = 0;
+				break;
+
+			case VK_IMAGE_LAYOUT_PREINITIALIZED:
+				barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+				barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+				barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+
+			default:
+				break;
+		}
+
+		switch (newLayout)
+		{
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			if (barrier.srcAccessMask == 0)
+			{
+				barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+			}
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			break;
+		default:
+			break;
+		}
+
 		vkCmdPipelineBarrier(commandBuffer,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			srcStage, dstStage,
 			0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 		vkEndCommandBuffer(commandBuffer);
+		
+		std::vector<VkCommandBuffer> commands;
+		commands.push_back(commandBuffer);
+
+		SubmitData(commands);
+
+		vkQueueWaitIdle(graphicQueue);
+
 		vkFreeCommandBuffers(device.logicalDevice, commandPool, 1, &commandBuffer);
 
 	}
@@ -488,45 +585,49 @@ namespace FRS {
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	
-		VkImageSubresourceLayers subResource = {};
-		subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subResource.baseArrayLayer = 0;
-		subResource.mipLevel = 0;
-		subResource.layerCount = 1;
 
 		vkBeginCommandBuffer(textureTransfererCmdBuff[texTransIndex], &beginInfo);
-
-		VkImageSubresourceRange range{};
-		range.levelCount = des.GetMipLevel();
-		range.layerCount = 1;
-
+		
 		VkBufferImageCopy copyRegion{};
 		std::vector<VkBufferImageCopy> copyRegions;
 
-		copyRegion.imageSubresource = subResource;
-		copyRegion.imageExtent.width = des.GetWidth();
-		copyRegion.imageExtent.height = des.GetHeight();
-		copyRegion.imageExtent.depth = 1;
+		uint32_t offset = 0;
 
 		for (uint32_t i = 0; i < des.GetMipLevel(); i++) {
 			copyRegion.imageSubresource.mipLevel = i;
+			copyRegion.imageExtent.width = des.tex[i].extent().x;
+			copyRegion.imageExtent.height = des.tex[i].extent().y; 
+			copyRegion.imageSubresource.layerCount = 1;
+			copyRegion.imageSubresource.baseArrayLayer = 0;
+			copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			copyRegion.bufferOffset = offset;
+			copyRegion.imageExtent.depth = 1;
 
 			copyRegions.push_back(copyRegion);
+			
+			offset += des.tex[i].size();
+
 		}
 
+		LayoutImage(des, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+			des.GetMipLevel(),
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
 		vkCmdCopyBufferToImage(textureTransfererCmdBuff[texTransIndex],
-			src.buffer, des.GetVkImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			src.buffer, des.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			copyRegions.size(), copyRegions.data());
 
 		vkEndCommandBuffer(textureTransfererCmdBuff[texTransIndex]);
-
+		
 	}
 
 	
 	void Commander::SetStaticData(Texture tex, VkDeviceSize offset) {
 
 		uint32_t index;
+
+		texTransIndex = 0;
 
 		for (uint32_t i = 0; i < realTextures.size(); i++) {
 
@@ -536,21 +637,24 @@ namespace FRS {
 			}
 		}
 
-		Buffer buffer = texTransferBuffers[index];
+	
+		memcpy(texTransferBuffers[index].GetBlock().ptr, 
+			tex.tex.data(), tex.GetSize());
+	
+		SetData(texTransferBuffers[index], tex, 0,
+			tex.GetBlock().offSet);
 
-		vkMapMemory(device.logicalDevice, buffer.GetBlock().memory,
-			0, tex.GetSize(), 0, &buffer.dataPointer);
-		memcpy(buffer.dataPointer, tex.GetImage(), tex.GetSize());
-		vkUnmapMemory(device.logicalDevice, buffer.GetBlock().memory);
+		std::vector<VkCommandBuffer> commandBufferz;
+		commandBufferz.push_back(textureTransfererCmdBuff[index]);
+		
+		SubmitData(commandBufferz);
+		WaitData();
 
-		SetData(buffer, tex, 0, offset);
+		LayoutImage(tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0,
+			tex.GetMipLevel(),
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		if (texTransIndex == staticBuffers.size() - 1) {
-			SubmitData(textureTransfererCmdBuff);
-			WaitData();
-		}
-
-		texTransIndex++;
 	}
 
 	void Commander::SetStaticData(Buffer buffer, VkDeviceSize offset,
@@ -574,10 +678,7 @@ namespace FRS {
 			}
 		}
 
-		vkMapMemory(device.logicalDevice, (staticTransferBuffers)[index].GetBlock().memory, offset, size, 0, &(staticTransferBuffers)[index].dataPointer);
-		memcpy((staticTransferBuffers)[index].dataPointer, data, size);
-		vkUnmapMemory(device.logicalDevice, staticTransferBuffers[index].GetBlock().memory);
-
+		memcpy((staticTransferBuffers)[index].GetBlock().ptr, data, size);
 		SetData((staticTransferBuffers)[index], buffer, 0, offset, size);
 
 		if (bufferIndex == staticBuffers.size() - 1) {
@@ -610,11 +711,12 @@ namespace FRS {
 			}
 		}
 
-		vkMapMemory(device.logicalDevice, (indexTransferBuffers)[index].GetBlock().memory, offset, size, 0, &(indexTransferBuffers)[index].dataPointer);
-		memcpy((indexTransferBuffers)[index].dataPointer, data, size);
-		vkUnmapMemory(device.logicalDevice, indexTransferBuffers[index].GetBlock().memory);
-
-		SetDataWithIndex((indexTransferBuffers)[index], buffer, 0, offset, size);
+		memcpy((indexTransferBuffers)[index].GetBlock().ptr, 
+			data, size);
+		
+		SetDataWithIndex((indexTransferBuffers)[index], 
+			buffer,
+			0, offset, size);
 
 		if (indexIndices == indexBuffers.size() - 1) {
 			SubmitData(indexCommandBuffer);
@@ -625,7 +727,8 @@ namespace FRS {
 		indexIndices++;
 	}
 
-	void Commander::SetDataWithIndex(const Buffer& src, Buffer& dst,
+	void Commander::SetDataWithIndex(const Buffer& src,
+		Buffer& dst,
 		VkDeviceSize offsetSrc,
 		VkDeviceSize offsetDst,
 		VkDeviceSize size) {
@@ -651,13 +754,11 @@ namespace FRS {
 		barrier.size = size;
 		barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-
 		vkCmdCopyBuffer(indexCommandBuffer[indexIndices], src.buffer, dst.buffer, 1, &copyRegion);
 		vkCmdPipelineBarrier(indexCommandBuffer[indexIndices],
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 			0, 0, nullptr, 1, &barrier, 0, nullptr);
-
 
 		vkEndCommandBuffer(indexCommandBuffer[indexIndices]);
 
@@ -683,9 +784,8 @@ namespace FRS {
 			}
 		}
 
-		vkMapMemory(device.logicalDevice, (uniformTransferBuffers)[index].GetBlock().memory, offset, size, 0, &(uniformTransferBuffers)[index].dataPointer);
-		memcpy((uniformTransferBuffers)[index].dataPointer, data, size);
-		vkUnmapMemory(device.logicalDevice, uniformTransferBuffers[index].GetBlock().memory);
+		memcpy((uniformTransferBuffers)[index].GetBlock().ptr, data, size);
+	
 
 		VkCommandBufferAllocateInfo bufferAllocate = {};
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
@@ -735,6 +835,7 @@ namespace FRS {
 
 		vkResetFences(device.logicalDevice, 1, &dataTransferFence);
 		vkQueueSubmit(graphicQueue, 1, &submitInfo, dataTransferFence);
+
 		vkQueueWaitIdle(graphicQueue);
 		vkWaitForFences(device.logicalDevice, 1, &dataTransferFence,
 			true, (uint64_t)std::numeric_limits<uint64_t>::max);
@@ -807,6 +908,9 @@ namespace FRS {
 			DestroyBuffer(commander->device, &commander->texTransferBuffers[i]);
 		}
 
+		for (int i = 0; i < commander->realTextures.size(); i++) {
+			ParticallyDestroyTexture(commander->realTextures[i]);
+		}
 
 		commander->uniformTransferBuffers.resize(0);
 		commander->staticTransferBuffers.resize(0);

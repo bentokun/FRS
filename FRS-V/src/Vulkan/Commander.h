@@ -26,12 +26,12 @@ namespace FRS {
 		Commander(Swapchain swapChain,
 			GraphicPipeline pipeline,
 			Device device,
-			DeviceAllocator allocator);
+			DeviceAllocator* allocator);
 
 		friend void CreateCommander(Commander* commander, Swapchain swapChain,
 			GraphicPipeline pipeline,
 			Device device,
-			DeviceAllocator allocator);
+			DeviceAllocator* allocator);
 
 		void ReadDrawingCommand(std::function<void()> drawingFunc);
 
@@ -109,7 +109,10 @@ namespace FRS {
 		void SetStaticData(Texture tex, VkDeviceSize offset);
 		void SetData(Buffer src, Texture des, uint32_t offsetSrc, uint32_t offsetDst);
 		void LayoutImage(Texture para, VkImageLayout oldLayout,
-			VkImageLayout newLayout);
+			VkImageLayout newLayout, uint32_t baseLevel,
+			uint32_t levelCount,
+			VkPipelineStageFlags srcStage,
+			VkPipelineStageFlags dstStage);
 
 		void CreateUniformDescriptorSets() {
 
@@ -143,9 +146,8 @@ namespace FRS {
 					uniformWriteDescriptorSet[i][j].dstSet = set;
 				}
 
-				vkUpdateDescriptorSets(device.logicalDevice, uniformWriteDescriptorSet[i].size(),
+				UpdateDescriptorSet(uniformWriteDescriptorSet[i].size(),
 					uniformWriteDescriptorSet[i].data(), 0, nullptr);
-
 			}
 
 		
@@ -190,7 +192,7 @@ namespace FRS {
 			GraphicPipeline				pipe;
 			Swapchain				    chain;
 
-			DeviceAllocator allocator;
+			DeviceAllocator* allocator;
 
 			uint32_t currentBuffer, currentUniformBuffer = 0;
 			uint32_t bufferIndex, transferIndex, texTransIndex, indexIndices = 0;

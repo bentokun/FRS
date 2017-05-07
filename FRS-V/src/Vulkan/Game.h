@@ -6,7 +6,6 @@
 #include <chrono>
 #include <thread>
 
-#include "../Img/DDS.h"
 #include "../Input/Controller.h"
 #include "../../Time.h"
 #include "Window.h"
@@ -16,6 +15,8 @@
 #include "GraphicPipeline.h"
 #include "Commander.h"
 #include "ContentManager.h"
+
+
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
@@ -101,6 +102,7 @@ namespace FRS {
 		int windowHeight, windowWidth = 0;
 
 		Controller controller{};
+		Texture tex{};
 
 		Device device;
 		static FRSDebug_CallbackFunc callbackFunc;

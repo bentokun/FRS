@@ -73,8 +73,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>E:\VSProject\FRSML\depency;E:\VSProject\FRSML\glm;E:\1.0.42.1\shaderc\libshaderc\include\shaderc;E:\VSProject\FRSML\FRSML\include;E:\VulkanSDK\1.0.39.1\Include\vulkan;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\VulkanSDK\1.0.39.1\Bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\VSProject\FRSML\glm;E:\VSProject\FRSML\gli\gli;E:\VSProject\FRSML\SOIL;E:\VSProject\FRSML\depency;E:\1.0.42.1\shaderc\libshaderc\include\shaderc;E:\VSProject\FRSML\FRSML\include;E:\VulkanSDK\1.0.39.1\Include\vulkan;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\VSProject\FRSML\SOIL;E:\VulkanSDK\1.0.39.1\Bin;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -95,7 +95,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>vulkan-1.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SOIL.lib;vulkan-1.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
