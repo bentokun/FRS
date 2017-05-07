@@ -11,5 +11,7 @@
 - Require resources:
 	+ vert.spv: SPIR-V Vertex Shader.
 	+ frag.spv: SPIR-V Fragment Shader.
-	
-- Esc to exit/
+	+ teacher-test.dds: Teacher Kawakami from Persona 5
+
+- Debugging material:
+	+ log.rdc: RenderDoc file for viewing what happens (helpful with figure out what the fuck is wrong with my texture)
