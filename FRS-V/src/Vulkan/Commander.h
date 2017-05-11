@@ -1,12 +1,12 @@
 #pragma once
 #pragma warning (disable: 4251 4267)
 
+#include <limits>
+
 #include "Rules.h"
 #include "Framebuffer.h"
 #include "GraphicPipeline.h"
 #include "Buffer.h"
-
-#include <limits>
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
@@ -18,17 +18,18 @@
 
 namespace FRS {
 
-	class TFSAPI Commander{
+	class TFSAPI Commander {
 
 	public:
 
 		Commander() { };
-		Commander(Swapchain swapChain,
+		Commander(Swapchain* swapChain,
 			GraphicPipeline pipeline,
 			Device device,
 			DeviceAllocator* allocator);
 
-		friend void CreateCommander(Commander* commander, Swapchain swapChain,
+		friend void CreateCommander(Commander* commander,
+			Swapchain* swapChain,
 			GraphicPipeline pipeline,
 			Device device,
 			DeviceAllocator* allocator);
@@ -44,7 +45,7 @@ namespace FRS {
 
 		void SubmitData(std::vector<VkCommandBuffer> buffers);
 		void WaitData();
-		
+
 		void SetStaticData(Buffer buffer, VkDeviceSize offset,
 			VkDeviceSize size, void* data);
 
@@ -63,7 +64,7 @@ namespace FRS {
 		void BindVertexBuffers(uint32_t firstBinding,
 			uint32_t sizeBinding,
 			Buffer buffers[],
-		VkDeviceSize offset[]);
+			VkDeviceSize offset[]);
 
 		void BindIndexBuffers(Buffer buffer, VkDeviceSize offset,
 			VkIndexType index);
@@ -95,6 +96,9 @@ namespace FRS {
 			uint16_t b = 0.0f,
 			uint16_t a = 1.0f);
 
+		void ClearDepthBuffer(uint16_t r = 1.0f,
+			uint16_t g = 0.0f);
+
 		VkCommandPool& GetCommandPool() {
 			return commandPool;
 		}
@@ -104,59 +108,25 @@ namespace FRS {
 			VkDeviceSize size,
 			void* data);
 
-		void UpdateData(Shader shader);
+		void UpdateData(Shader* shader);
 
-		void SetStaticData(Texture tex, VkDeviceSize offset);
-		void SetData(Buffer src, Texture des, uint32_t offsetSrc, uint32_t offsetDst);
-		void LayoutImage(Texture para, VkImageLayout oldLayout,
+		void SetStaticData(Texture* tex, VkDeviceSize offset);
+		void SetData(Buffer src, Texture* des, uint32_t offsetSrc, uint32_t offsetDst);
+		void LayoutImage(Texture* para, VkImageLayout oldLayout,
 			VkImageLayout newLayout, uint32_t baseLevel,
 			uint32_t levelCount,
 			VkPipelineStageFlags srcStage,
-			VkPipelineStageFlags dstStage);
+			VkPipelineStageFlags dstStage,
+			VkImageAspectFlags flags = VK_IMAGE_ASPECT_COLOR_BIT);
 
-		void CreateUniformDescriptorSets() {
-
-			VkDescriptorPoolCreateInfo poolInfo = {};
-
-			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			poolInfo.maxSets = desSetLayouts.size();
-			poolInfo.poolSizeCount = uniformDescriptorPoolSize.data()->size();
-			poolInfo.pPoolSizes = uniformDescriptorPoolSize.data()->data();
-		
-			VkResult res1 = vkCreateDescriptorPool(device.logicalDevice,
-				&poolInfo, nullptr, &descriptorPool);
-
-			for (uint32_t i = 0; i < desSetLayouts.size(); i++) {
-			
-				VkDescriptorSetAllocateInfo allocInfo = {};
-				allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-				allocInfo.descriptorPool = descriptorPool;
-
-				allocInfo.descriptorSetCount = desSetLayouts.size();
-				allocInfo.pSetLayouts = desSetLayouts.data();
-			
-				VkDescriptorSet set = {};
-			
-				VkResult res2 = vkAllocateDescriptorSets(device.logicalDevice,
-					&allocInfo, &set);
-
-				uniformDescriptorSets.push_back(set);
-			
-				for (uint32_t j = 0; j < uniformWriteDescriptorSet[i].size(); j++) {
-					uniformWriteDescriptorSet[i][j].dstSet = set;
-				}
-
-				UpdateDescriptorSet(uniformWriteDescriptorSet[i].size(),
-					uniformWriteDescriptorSet[i].data(), 0, nullptr);
-			}
-
-		
-		}
+		void CreateUniformDescriptorSets();
 
 		private:
 
+			bool hasClearBufferColor = false;
+
 			VkCommandPool    commandPool					   = VK_NULL_HANDLE; ;
-			VkClearValue     clearColor							{ 0,0,0,0 };
+			VkClearValue     clearColor, bufferClearColor	   = { 0,0,0,0 };
 			VkDescriptorPool descriptorPool                    = VK_NULL_HANDLE;
 			VkSemaphore      imageSemaphore, rendererSemaphore = VK_NULL_HANDLE;
 			VkQueue          graphicQueue, presentQueue        = VK_NULL_HANDLE;
@@ -185,12 +155,12 @@ namespace FRS {
 			std::vector<std::vector<VkWriteDescriptorSet>> uniformWriteDescriptorSet;
 			std::vector<std::vector<VkDescriptorPoolSize>> uniformDescriptorPoolSize;
 
-			std::vector<Texture>         realTextures;
+			std::vector<Texture*>         realTextures;
 
 			Framebuffers				buffers;
 			Device						device;
 			GraphicPipeline				pipe;
-			Swapchain				    chain;
+			Swapchain*				    chain;
 
 			DeviceAllocator* allocator;
 
@@ -199,5 +169,8 @@ namespace FRS {
 
 	};
 
+	namespace Extensions {
+		TFSAPI void CreateDepthBuffer(Device device, DeviceAllocator* allocator, Swapchain* swapChain, Commander* commander);
+	}
 
 }

@@ -5,6 +5,7 @@
 
 #include <Vulkan.h>
 #include <string.h>
+#include <vector>
 
 #ifdef _WIN32
 	#ifdef FRSV_EXPORTS
@@ -26,6 +27,7 @@
 
 #pragma region DDSINFORM
 #define DDS_HEADERSIZE   128
+
 #define DDS_CAPABILITES  0x00000001
 #define DDS_HEIGHT       0x00000002
 #define DDS_WIDTH        0x00000004
@@ -37,7 +39,7 @@
 
 #define DDSPF_ALPHAPIXELS  0x00000001
 #define DDSPF_ALPHA        0x00000002
-#define DDSPF_FOURCC       0x00000004
+
 #define DDSPF_PALETTEINDEX 0x00000020
 #define DDSPF_RGB          0x00000040
 #define DDSPF_LUMINACE     0x00020000
@@ -55,6 +57,7 @@
 #define DDSCAPS2_CUPEMAP_NEGATIVEZ  0x00008000
 #define DDSCAPS2_VOLUME             0x00200000
 
+#define DDSPF_FOURCC       0x00000004
 #define MAGIC_DDS				    0x20534444    
 
 #define ID_DXT1						0x31545844
@@ -159,12 +162,13 @@ namespace FRS {
 	//@ Folder: Img
 	//@ File Loader: DDS (Vulkan + DirectX)
 	//@ Return image, include [mipmapLevel] of mipmap
-	TFSAPI unsigned char **LoadDDS(const char* inpName,
-		int* width,
-		int* height, int* mimMapLevel,
-		VkFormat* vkFormat, 
-		int* size,
+	TFSAPI std::vector<unsigned char> LoadDDS(const char* inpName,
+		int* mipMapLevel,
+		std::vector<int>* width,
+		std::vector<int>* height,
+		std::vector<int>* size,
+		VkFormat* vkFormat,
 		char errorMessage[256]);
 
-	TFSAPI void UnloadDDS(unsigned char** block, uint32_t numberMips);
+	TFSAPI void ConvertARGBtoRGBA(unsigned char* block, int size);
 }

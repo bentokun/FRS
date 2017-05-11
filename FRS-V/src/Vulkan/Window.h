@@ -2,7 +2,6 @@
 
 #pragma warning (disable: 4251 4267)
 
-#include <Windows.h>
 #include <string>
 #include <memory>
 #include <functional>
@@ -10,19 +9,21 @@
 
 #include <iostream>
 
+#include <Windows.h>
+
 #include "Rules.h"
 #include "Assert.h"
 
 #ifdef _WIN32
-#ifdef FRSV_EXPORTS
-#define TFAPI __declspec(dllexport)
-#else
-#define TFAPI __declspec(dllimport)
-#endif
+	#ifdef FRSV_EXPORTS
+	#define TFSAPI __declspec(dllexport)
+	#else
+	#define TFSAPI __declspec(dllimport)
+	#endif
 #endif
 
-template class TFAPI std::function<void(int, FRSKeyState)>;
-template class TFAPI std::function<void(int, int)>;
+template class TFSAPI std::function<void(int, FRSKeyState)>;
+template class TFSAPI std::function<void(int, int)>;
 typedef std::function<void(int, FRSKeyState)> KeyboardFunc;
 typedef std::function<void(int, int)> ResizeFunc;
 
@@ -30,7 +31,7 @@ namespace FRS {
 
 #ifdef WIN32
 
-	struct TFAPI Window {
+	struct TFSAPI Window {
 	public:
 
 		std::shared_ptr<Window> sharedWindow;
@@ -40,11 +41,6 @@ namespace FRS {
 			FRSWindowState windowState = WINDOWED);
 		
 		Window() {};
-
-		//~Window();
-
-		bool ShouldQuit = false;
-
 
 		HWND& GetWin32Window() {
 			return mainWindow;
@@ -62,7 +58,9 @@ namespace FRS {
 			eventStruct.resizeFunc = func;
 		}
 
+#pragma region GETTER
 		VkExtent2D GetWindowExtent() {
+
 			VkExtent2D extent = {};
 			extent.width = width;
 			extent.height = height;
@@ -73,8 +71,9 @@ namespace FRS {
 		void LoadWindowIcon(LPWSTR path, int width, int height) {
 			winIcon = static_cast<HICON>(LoadImageW(NULL, path,
 				IMAGE_ICON, width, height, LR_LOADFROMFILE));
-
 		}
+#pragma endregion
+		bool ShouldQuit = false;
 
 	private:
 
@@ -97,14 +96,14 @@ namespace FRS {
 
 #endif
 
-	TFAPI FRSshort GetScreenWidth();
-	TFAPI FRSshort GetScreenHeight();
+	TFSAPI FRSshort GetScreenWidth();
+	TFSAPI FRSshort GetScreenHeight();
 
-	TFAPI void CreateVulkanWindow(Window* window,VkInstance instance,std::string title, int width, int height,int originX = 0 , int originY = 0,
+	TFSAPI void CreateVulkanWindow(Window* window,VkInstance instance,std::string title, int width, int height,int originX = 0 , int originY = 0,
 		FRSWindowState state = WINDOWED);
 
 	//Will make the window havena
-	TFAPI void PollEvents();
+	TFSAPI void PollEvents();
 
 
 }

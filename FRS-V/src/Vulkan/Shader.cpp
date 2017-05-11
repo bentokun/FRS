@@ -1,4 +1,4 @@
-#include "Shader.h"
+#include "shader.h"
 
 namespace FRS {
 
@@ -39,35 +39,35 @@ namespace FRS {
 
 	}
 
-	void GetShaderBind(Shader shader, std::vector<VkVertexInputAttributeDescription>& attributeDes,
+	void GetShaderBind(Shader* shader, std::vector<VkVertexInputAttributeDescription>& attributeDes,
 		std::vector<VkVertexInputBindingDescription>& bindingsDes) {
 
 		std::vector<VkVertexInputAttributeDescription> attributesDesc;
 		std::vector<VkVertexInputBindingDescription> bindingDes;
 
 		for (uint32_t i = 0; i < 25; i++) {
-			if (shader.VertexInput.VertexBindings[i].Location[0].Format == VK_FORMAT_UNDEFINED) {
+			if (shader->VertexInput.VertexBindings[i].Location[0].Format == VK_FORMAT_UNDEFINED) {
 				break;
 			}
 			else {
 
 				VkVertexInputBindingDescription inputDes;
 				inputDes.binding = i;
-				inputDes.inputRate = shader.VertexInput.VertexBindings[i].InputRate;
-				inputDes.stride = shader.VertexInput.VertexBindings[i].Stride;
+				inputDes.inputRate = shader->VertexInput.VertexBindings[i].InputRate;
+				inputDes.stride = shader->VertexInput.VertexBindings[i].Stride;
 
 				bindingDes.push_back(inputDes);
 
 				for (uint32_t j = 0; j < 25; j++) {
-					if (shader.VertexInput.VertexBindings[i].Location[j].Format == VK_FORMAT_UNDEFINED) {
+					if (shader->VertexInput.VertexBindings[i].Location[j].Format == VK_FORMAT_UNDEFINED) {
 						break;
 					}
 					else {
 						VkVertexInputAttributeDescription attributeDes = {};
-						attributeDes.offset = shader.VertexInput.VertexBindings[i].Location[j].Offset;
+						attributeDes.offset = shader->VertexInput.VertexBindings[i].Location[j].Offset;
 						attributeDes.location = j;
 						attributeDes.binding = i;
-						attributeDes.format = shader.VertexInput.VertexBindings[i].Location[j].Format;
+						attributeDes.format = shader->VertexInput.VertexBindings[i].Location[j].Format;
 
 						attributesDesc.push_back(attributeDes);
 
@@ -80,33 +80,56 @@ namespace FRS {
 		bindingsDes = bindingDes;
 	}
 
-	void Destroy(Shader shader) {
-		vkDestroyShaderModule(shader.device.logicalDevice,
-			shader.vertexModule, nullptr);
-		vkDestroyShaderModule(shader.device.logicalDevice,
-			shader.fragModule, nullptr);
+	void Destroy(Shader* shader) {
+		vkDestroyShaderModule(shader->device.logicalDevice,
+			shader->vertexModule, nullptr);
+		vkDestroyShaderModule(shader->device.logicalDevice,
+			shader->fragModule, nullptr);
 
 		for (uint32_t i = 0; i < 25; i++) {
 			for (uint32_t j = 0; j < 25; j++) {
-				delete shader.UniformSets[i].UniformBindings[j].Range;
-				delete shader.UniformSets[i].UniformBindings[j].Size;
-				delete shader.UniformSets[i].UniformBindings[j].OffSet;
+				delete shader->UniformSets[i].UniformBindings[j].Range;
+				delete shader->UniformSets[i].UniformBindings[j].Size;
+				delete shader->UniformSets[i].UniformBindings[j].OffSet;
 			}
 		
-			delete shader.UniformSets[i].UniformBindings;
-			delete shader.UniformSets[i].BindingDatas;
-			delete shader.UniformSets[i].BindingSize;
+			delete shader->UniformSets[i].UniformBindings;
+			delete shader->UniformSets[i].BindingDatas;
+			delete shader->UniformSets[i].BindingSize;
 		}
 
-		delete shader.UniformSets;
+		delete shader->UniformSets;
 
 		for (uint32_t i = 0; i < 25; i++) {
-			delete shader.VertexInput.VertexBindings[i].Location;
+			delete shader->VertexInput.VertexBindings[i].Location;
 			
 		}
 
-		delete shader.VertexInput.VertexBindings;
-		delete shader.VertexInput.BindingSize;
-		delete shader.VertexInput.BindingDatas;
+		delete shader->VertexInput.VertexBindings;
+		delete shader->VertexInput.BindingSize;
+		delete shader->VertexInput.BindingDatas;
 	}
+
+	bool Shader::operator == (Shader shader) {
+
+		if (vertexModule == shader.vertexModule &&
+			fragModule == shader.fragModule &&
+			device == shader.device)
+
+			return true;
+
+		return false;
+	}
+
+	bool Shader::operator == (Shader* shader) {
+
+		if (vertexModule == shader->vertexModule &&
+			fragModule == shader->fragModule &&
+			device == shader->device)
+
+			return true;
+
+		return false;
+	}
+
 }

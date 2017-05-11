@@ -51,4 +51,11 @@ namespace FRS {
 		return index;
 	}
 
+	bool QueueFamilyIndex::operator ==(QueueFamilyIndex ant) {
+		if (graphicsFamily == ant.graphicsFamily &&
+			presentFamily == ant.presentFamily)
+			return true;
+
+		return false;
+	}
 }

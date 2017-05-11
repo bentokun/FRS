@@ -2,32 +2,35 @@
 
 namespace FRS {
 
-	unsigned char **LoadDDS(const char* inpName,
-		int* width,
-		int* height, int* mimMapLevel,
-		VkFormat* vkFormat, int* size, char errorMessage[256])
+	std::vector<unsigned char> LoadDDS(const char* inpName,
+		int* mipMapLevel,
+		std::vector<int>* width,
+		std::vector<int>* height,
+		std::vector<int>* size,
+		VkFormat* vkFormat,
+		char errorMessage[256])
 	{
 		int magic;
-		unsigned char* temp = nullptr;
+		std::vector<unsigned char> returnData;
+		unsigned char* temp;
 		unsigned char** data;
 		int bytes[16];
+		
 
 		std::ifstream f(inpName, std::ios::binary);
 
 		f.read(reinterpret_cast<char*>(&magic), sizeof(magic));
 
 		if (magic != MAGIC_DDS) {
-			return nullptr;
+			return std::vector<unsigned char>();
 		}
 		else {
 			DDSurfaceDes2 header = {};
-			
+
 			f.read(reinterpret_cast<char*>(&header), sizeof(header));
 
-			*width = header.width;
-			*height = header.height;
-			*mimMapLevel = header.mipmapCount;
-			
+			*mipMapLevel = header.mipmapCount;
+
 			DDSFormatType format = {};
 
 			int imageBytes = header.width * header.height;
@@ -59,7 +62,7 @@ namespace FRS {
 
 					errorMessage = buf;
 
-					return nullptr;
+					return std::vector<unsigned char>();
 				}
 			}
 			else if (header.pixelFormat.rgbBitCount == 32) {
@@ -70,25 +73,25 @@ namespace FRS {
 			else
 			{
 				errorMessage = "Can't specify DDS format";
-				return nullptr;
+				return std::vector<unsigned char>();
 			}
 
-			int w = *width; int h = *height;
-			int mipmapLvl = *mimMapLevel;
+			int w = header.width; int h = header.height;
+			int mipmapLvl = *mipMapLevel;
 
 			data = reinterpret_cast<unsigned char**>(malloc(mipmapLvl * sizeof(unsigned char*)));
 
-			for (uint32_t i = 0; i < header.mipmapCount && i < 16; i++) {
+			for (int i = 0; i < header.mipmapCount && i < 16; i++) {
 				if (w == 0) w = 1;
 				if (h == 0) h = 1;
 
 				if (format == DDS_FORMAT_RGBA8) {
 					imageBytes = w*h * 4;
-					*size += imageBytes;
+					size->push_back(imageBytes);
 				}
 				else {
 					imageBytes = ((w + 3) / 4)*((h + 3) / 4)*blockSize;
-					*size += imageBytes;
+					size->push_back(imageBytes);
 				}
 
 				if (i == 0) {
@@ -100,43 +103,58 @@ namespace FRS {
 
 				if (!data[i]) {
 					errorMessage = "Out of memory!";
-					return nullptr;
+					return std::vector<unsigned char>();
 				}
 
 				if (format != DDS_FORMAT_RGBA8) {
-					f.read(reinterpret_cast<char*>(temp), imageBytes);
-					int j, widthBytes, k;
+					f.read(reinterpret_cast<char*>(data[i]), imageBytes);
+					
+					/*int j, widthBytes, k;
 					unsigned char *s, *d;
 					widthBytes = ((w + 3) / 4)*blockSize;
 					s = temp;
 					d = data[i] + ((h + 3) / 4 - 1)*widthBytes;
 
-					for (j = 0; j < ((h + 3) / 4 - 1)*widthBytes; j++) {
+					for (j = 0; j < ((h + 3) / 4); j++) {
 						memcpy(d, s, widthBytes);
 					}
 
 					s += widthBytes;
 					d -= widthBytes;
-
+					*/
 				}
+				width->push_back(w);
+				height->push_back(h);
 
 				w /= 2; h /= 2;
 			}
 
 		}
 
-
-		free(temp);
-		f.close();
-		return data;
-	}
-	
-	void UnloadDDS(unsigned char** block, uint32_t numberMips) {
-		for (uint32_t i = 0; i < numberMips; i++) {
-			free(block[i]);
+		for (int i = 0; i < *mipMapLevel; i++) {
+			for (int j = 0; j < bytes[i]; j++) {
+				returnData.push_back(data[i][j]);
+			}
+			free(data[i]);
 		}
 
-		free(block);
+		free(temp);
+		free(data);
+		f.close();
+		return returnData;
+	}
+
+	void ConvertARGBtoRGBA(unsigned char* block, int size) {
+
+		unsigned char temp;
+		size /= 4;
+
+		for (int i = 0; i < size; i++) {
+			temp = block[2];
+			block[2] = block[0];
+			block[0] = temp;
+			block += 4;
+		}
 	}
 
 }

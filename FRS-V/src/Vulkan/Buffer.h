@@ -1,14 +1,14 @@
 #pragma once
 #pragma warning (disable: 4251 4267)
 
+#include <vector>
+#include <algorithm>
+#include <memory>
+
 #include "Rules.h"
 #include "Assert.h"
 #include "Device.h"
 
-#include <Vulkan.h>
-#include <vector>
-#include <algorithm>
-#include <memory>
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
@@ -188,12 +188,14 @@ namespace FRS {
 			directData = nullptr;
 		};
 
-		//Vertex of uniform?
+		~Buffer() {};
+
 		friend void CreateBuffer(Buffer &buffer,
 			Device &device, VkBufferUsageFlags usage,
 			VkDeviceSize size, bool localQ, 
 			DeviceAllocator* allocator);
 
+#pragma region CONSTRUCTOR FOR UNINSIST VECTOR
 		Buffer(Buffer &&buffer) {
 
 			this->buffer = buffer.buffer;
@@ -246,35 +248,7 @@ namespace FRS {
 			setPoolSize = buffer.setPoolSize;
 		}
 
-		/*
-		void Bind(VkVertexInputRate rate, VkDeviceSize binding,
-			VkDeviceSize stride);
-
-		void Attribute(
-			VkDeviceSize location,
-			VkDeviceSize offset,
-			VkFormat format);
-		
-
-		void LayoutUniform(VkDeviceSize binding, VkDeviceSize dataArrayLength,
-			Stage stage) {
-
-			VkDescriptorSetLayoutBinding layout = {};
-
-			layout.binding = binding;
-			layout.descriptorCount = dataArrayLength;
-			layout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			layout.stageFlags = stage;
-			layout.pImmutableSamplers = nullptr;
-
-			this->setUniformLayoutBinding = layout;
-
-			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize.descriptorCount = dataArrayLength;
-
-		}
-		*/
-		Buffer &operator =(Buffer const &tBuffer) {
+		Buffer operator =(Buffer const &tBuffer) {
 			Buffer nBuffer;
 
 			nBuffer.mSize = tBuffer.mSize;
@@ -296,6 +270,7 @@ namespace FRS {
 			return nBuffer;
 		}
 		
+#pragma endregion
 
 		VkDeviceSize getSize() const {
 			return mSize;
@@ -311,20 +286,8 @@ namespace FRS {
 	
 		void* dataPointer = nullptr;
 
-		~Buffer() {};
-		
 		friend void DestroyBuffer(Device device, Buffer* Tbuffer);
 
-		/*
-		std::vector<VkVertexInputAttributeDescription>& GetAttributeDescriptions() {
-			return attributeDescriptions;
-		}
-
-		VkVertexInputBindingDescription GetBindingDescriptions() {
-			return bindingDes;
-		}
-		*/
-	
 		VkBuffer buffer;
 
 		bool operator == (Buffer& buff) {

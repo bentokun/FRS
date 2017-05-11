@@ -65,7 +65,7 @@ namespace FRS {
 
 		vkEnumerateInstanceExtensionProperties(nullptr, &totalExtensions, extProps.data());
 
-		for (int i = 0; i < totalExtensions; i++) {
+		for (uint32_t i = 0; i < totalExtensions; i++) {
 			extensions[i] = extProps[i].extensionName;
 		}
 
@@ -425,23 +425,22 @@ namespace FRS {
 
 		VkSurfaceCapabilitiesKHR capabilities = GetWindowSurfaceCapabilities(device, window);
 
-		if (capabilities.currentExtent.width != reinterpret_cast<uint32_t>(std::numeric_limits<uint32_t>::max)) {
+		VkExtent2D extent = window.GetWindowExtent();
+
+		if (capabilities.currentExtent.width != reinterpret_cast<uint32_t>(std::numeric_limits<uint32_t>::max)){
 			return capabilities.currentExtent;
 		}
-		else {
-			VkExtent2D extent = window.GetWindowExtent();
 
-			extent.width = FRSML::Clamp(capabilities.minImageExtent.width,
+		extent.width = FRSML::Clamp(capabilities.minImageExtent.width,
 				capabilities.maxImageExtent.width,
 				extent.width);
 
-			extent.height = FRSML::Clamp(capabilities.minImageExtent.height,
+		extent.height = FRSML::Clamp(capabilities.minImageExtent.height,
 				capabilities.maxImageExtent.height,
 				extent.height);
 
-			return extent;
-		}
-
+		return extent;
+		
 	}
 
 
@@ -493,7 +492,7 @@ namespace FRS {
 	}
 
 
-	TFAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window window) {
+	uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window window) {
 
 		VkSurfaceCapabilitiesKHR capabilities = GetWindowSurfaceCapabilities(device, window);
 		

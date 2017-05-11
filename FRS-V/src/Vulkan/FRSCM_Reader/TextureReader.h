@@ -1,9 +1,8 @@
 #pragma once
 
-
 #include <string>
 
-#include <gli\gli.hpp>
+#include "..\..\Img\DDS.h"
 #include "..\Texture.h"
 
 

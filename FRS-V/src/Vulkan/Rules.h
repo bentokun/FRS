@@ -2,8 +2,18 @@
 
 #ifdef _WIN32
 	#define VK_USE_PLATFORM_WIN32_KHR
+
+	#ifdef FRSV_EXPORTS
+	#define TFSAPI __declspec(dllexport)
+	#else
+	#define TFSAPI __declspec(dllimport)
+	#endif
+
 #endif
 
+#include <string>
+
+#include <Windows.h>
 #include <vulkan.h>
 
 typedef unsigned char FRSchar;
@@ -45,4 +55,9 @@ enum FRS_STATE {
 	SUCCESS = 1,
 	FAILURE = 0
 };
+
+TFSAPI std::wstring ConvertToWString(std::string str);
+
+
+
 

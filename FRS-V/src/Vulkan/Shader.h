@@ -30,7 +30,7 @@ namespace FRS {
 			std::string name1,
 			std::string name2);
 
-		friend void Destroy(Shader shader);
+		friend void Destroy(Shader* shader);
 
 		struct UniformBinding {
 			VkDeviceSize dataArrayLength = 0;
@@ -77,17 +77,12 @@ namespace FRS {
 			uint32_t* IndexSize = new uint32_t[25];
 		} IndexInput;
 
-		bool operator == (Shader shader) {
+#pragma region OPERATOR
+		bool operator == (Shader shader);
+		bool operator == (Shader* shader);
+#pragma endregion
 
-			if (vertexModule == shader.vertexModule &&
-				fragModule == shader.fragModule &&
-				device == shader.device)
-
-				return true;
-
-			return false;
-		}
-
+#pragma region GETTER
 		VkShaderModule& GetVertexModule() {
 			return vertexModule;
 		}
@@ -95,16 +90,15 @@ namespace FRS {
 		VkShaderModule& GetFragmentModule() {
 			return fragModule;
 		}
-
+#pragma endregion
 	private:
 
 		Device device;
-
 		VkShaderModule vertexModule, fragModule;
+
 	};
 
-
-	TFAPI void GetShaderBind(Shader shader, std::vector<VkVertexInputAttributeDescription>& attributeDes,
+	TFSAPI void GetShaderBind(Shader* shader, std::vector<VkVertexInputAttributeDescription>& attributeDes,
 		std::vector<VkVertexInputBindingDescription>& bindingsDes);
 
 }

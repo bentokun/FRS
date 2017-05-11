@@ -1,53 +1,6 @@
 ﻿E:\VS2017-RC\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (FRS-V.vcxproj).  This can lead to incorrect clean and rebuild behavior.
-  Texture.cpp
-e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-  TextureReader.cpp
-e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-  Generating Code...
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-  Compiling...
-  GraphicPipeline.cpp
-e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-  Game.cpp
-e:\vsproject\frsml\frs-v\time.h(8): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(90): warning C4101: 'height': unreferenced local variable
-e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(91): warning C4101: 'message': unreferenced local variable
-e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(90): warning C4101: 'width': unreferenced local variable
-e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(89): warning C4101: 'format': unreferenced local variable
-e:\vsproject\frsml\frs-v\src\vulkan\game.cpp(90): warning C4101: 'mipLevel': unreferenced local variable
-  Framebuffer.cpp
-e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-  ContentManager.cpp
-e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-  Commander.cpp
-e:\vsproject\frsml\frsml\include\vector.h(15): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frs-v\src\vulkan\window.h(18): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\queuefamily.h(11): warning C4005: 'TFAPI': macro redefinition
-  e:\vsproject\frsml\frsml\include\vector.h(15): note: see previous definition of 'TFAPI'
-e:\vsproject\frsml\frs-v\src\vulkan\commander.cpp(639): warning C4018: '<': signed/unsigned mismatch
-  Generating Code...
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-e:\vsproject\frsml\frs-v\src\vulkan\buffer.h(294): warning C4172: returning address of local variable or temporary: nBuffer
-     Creating library E:\VSProject\FRSML\x64\Debug\FRS.lib and object E:\VSProject\FRSML\x64\Debug\FRS.exp
+  VkExtensions.cpp
+e:\vsproject\frsml\frs-v\src\vulkan\vkextensions.cpp(430): warning C4311: 'reinterpret_cast': pointer truncation from 'std::numeric_limits<unsigned int>::_Ty (__cdecl *)(void) noexcept' to 'uint32_t'
+e:\vsproject\frsml\frs-v\src\vulkan\vkextensions.cpp(430): warning C4302: 'reinterpret_cast': truncation from 'std::numeric_limits<unsigned int>::_Ty (__cdecl *)(void) noexcept' to 'uint32_t'
   FRS-V.vcxproj -> E:\VSProject\FRSML\x64\Debug\FRS.dll
   FRS-V.vcxproj -> E:\VSProject\FRSML\x64\Debug\FRS.pdb (Partial PDB)

@@ -5,6 +5,7 @@
 #include "Window.h"
 #include "Device.h"
 #include "VkExtensions.h"
+#include "Texture.h"
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
@@ -21,13 +22,10 @@ namespace FRS {
 	public:
 
 		Swapchain();
-
-		friend void CreateSwapchain(Swapchain* swapChain, Device device, Window window, 
+		Swapchain(Device device, Window window,
 			VkComponentSwizzle rgbaOption[4], bool vSync = false);
 
-		//In case we want monochrome effect, cause loading image is easier than doing shading
-		//if we can load image :)).
-		Swapchain(Device device, Window window,
+		friend void CreateSwapchain(Swapchain* swapChain, Device device, Window window,
 			VkComponentSwizzle rgbaOption[4], bool vSync = false);
 
 		VkSurfaceFormatKHR format;
@@ -35,7 +33,11 @@ namespace FRS {
 
 		VkExtent2D swapChainExtent{ VK_NULL_HANDLE };
 
-		friend void DestroySwapchain(Swapchain chain);
+		friend void DestroySwapchain(Swapchain* chain);
+
+		friend void RecreateSwapchain(Swapchain* swapChain,
+			Window window, VkComponentSwizzle rgbaOption[4],
+		    bool vSync = false);
 
 		std::vector<VkImage> images;
 		std::vector<VkImageView> imageViews;
@@ -43,18 +45,12 @@ namespace FRS {
 		VkSwapchainKHR swapChain{ VK_NULL_HANDLE };
 		VkSwapchainKHR oldSwapChain{ VK_NULL_HANDLE };
 
-		friend void RecreateSwapchain(Swapchain* swapChain,
-			Window window, VkComponentSwizzle rgbaOption[4],
-		    bool vSync = false);
-
+		Texture depthBuffer;
 
 	private:
 		
 		Device device;
 
 	};
-
-	
-	
 
 }

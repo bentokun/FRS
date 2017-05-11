@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="src\Img\DDS.h" />
     <ClInclude Include="src\Input\Controller.h" />
+    <ClInclude Include="src\Behavior.h" />
     <ClInclude Include="src\Vulkan\FRSCM_Reader\TextureReader.h" />
     <ClInclude Include="src\Vulkan\Texture.h" />
     <ClInclude Include="src\Vulkan\Commander.h" />
@@ -163,7 +164,6 @@
     <ClInclude Include="src\Vulkan\Rules.h" />
     <ClInclude Include="src\Vulkan\Window.h" />
     <ClInclude Include="src\Vulkan\Transferer.h" />
-    <ClInclude Include="Time.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Img\DDS.cpp" />
@@ -176,6 +176,7 @@
     <ClCompile Include="src\Vulkan\FRSCM_Reader\TextureReader.cpp" />
     <ClCompile Include="src\Vulkan\Game.cpp" />
     <ClCompile Include="src\Vulkan\QueueFamily.cpp" />
+    <ClCompile Include="src\Vulkan\Rules.cpp" />
     <ClCompile Include="src\Vulkan\SwapChain.cpp" />
     <ClCompile Include="src\Vulkan\Window.cpp" />
     <ClCompile Include="src\Vulkan\Framebuffer.cpp" />
@@ -183,7 +184,6 @@
     <ClCompile Include="src\Vulkan\VkExtensions.cpp" />
     <ClCompile Include="src\Vulkan\Shader.cpp" />
     <ClCompile Include="src\Vulkan\Texture.cpp" />
-    <ClCompile Include="Time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FRSML\FRSML.vcxproj">

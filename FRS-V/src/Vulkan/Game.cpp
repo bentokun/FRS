@@ -50,7 +50,6 @@ namespace FRS {
 		while (!quit) {
 
 			PollEvents();
-			AdjustCurrentThreadFPS(60.0f);
 			Update();
 
 			//printf("Time: %f \n", (duration + sleep_time).count());
@@ -61,21 +60,28 @@ namespace FRS {
 	};
 
 	struct Vertex {
-		FRSML::vec2 pos;
+		FRSML::vec3 pos;
 		FRSML::vec3 color;
 		FRSML::vec2 normal;
 	};
 
 	const std::vector<Vertex> vertices = {
-		{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
-		{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
-		{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } }
+		{ { -0.5f, -0.5f, 0.0f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f, 0.0f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f, 0.0f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
+		{ { -0.5f, 0.5f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } },
+
+		{ { -0.5f, -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f, -0.5f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
+		{ { -0.5f, 0.5f, -0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } }
 	};
 
 	const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4
 	};
+
 
 	void Game::InputHandler(int code, FRSKeyState state) {
 		if (code == VK_ESCAPE) {
@@ -85,10 +91,6 @@ namespace FRS {
 
 	//Set Data should only be used once.
 	void Game::Start() {
-
-		VkFormat format;
-		int width, height, mipLevel;
-		char message[256];
 
 		CreateVulkanWindow(&window, instance,
 			"VulkanTest (No Texture)", 
@@ -115,50 +117,50 @@ namespace FRS {
 
 		CreateSwapchain(&swapChain, device, window, components, false);
 
-		shader.VertexInput.VertexBindings[0].InputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-		shader.VertexInput.VertexBindings[0].Stride = sizeof(Vertex);
-		shader.VertexInput.BindingSize[0] = sizeof(vertices[0]) * vertices.size();
-		shader.VertexInput.BindingDatas[0] = (void*)vertices.data();
+		shader->VertexInput.VertexBindings[0].InputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		shader->VertexInput.VertexBindings[0].Stride = sizeof(Vertex);
+		shader->VertexInput.BindingSize[0] = sizeof(vertices[0]) * vertices.size();
+		shader->VertexInput.BindingDatas[0] = (void*)vertices.data();
 
-		shader.VertexInput.VertexBindings[0].Location[0].Format = VK_FORMAT_R32G32_SFLOAT;
-		shader.VertexInput.VertexBindings[0].Location[0].Offset = offsetof(Vertex, pos);
-		shader.VertexInput.VertexBindings[0].Location[1].Offset = offsetof(Vertex, color);
-		shader.VertexInput.VertexBindings[0].Location[1].Format = VK_FORMAT_R32G32B32_SFLOAT;
-		shader.VertexInput.VertexBindings[0].Location[2].Offset = offsetof(Vertex, normal);
-		shader.VertexInput.VertexBindings[0].Location[2].Format = VK_FORMAT_R32G32_SFLOAT;
+		shader->VertexInput.VertexBindings[0].Location[0].Format = VK_FORMAT_R32G32B32_SFLOAT;
+		shader->VertexInput.VertexBindings[0].Location[0].Offset = offsetof(Vertex, pos);
+		shader->VertexInput.VertexBindings[0].Location[1].Offset = offsetof(Vertex, color);
+		shader->VertexInput.VertexBindings[0].Location[1].Format = VK_FORMAT_R32G32B32_SFLOAT;
+		shader->VertexInput.VertexBindings[0].Location[2].Offset = offsetof(Vertex, normal);
+		shader->VertexInput.VertexBindings[0].Location[2].Format = VK_FORMAT_R32G32_SFLOAT;
 
-		shader.IndexInput.IndexDatas[0] = (void*)(indices.data());
-		shader.IndexInput.IndexSize[0] = sizeof(indices[0]) * indices.size();
+		shader->IndexInput.IndexDatas[0] = (void*)(indices.data());
+		shader->IndexInput.IndexSize[0] = sizeof(indices[0]) * indices.size();
 
-		shader.UniformSets[0].UniformBindings[0].dataArrayLength = 1;
-		shader.UniformSets[0].UniformBindings[1].dataArrayLength = 1;
-		shader.UniformSets[0].UniformBindings[0].stage = VERTEX_SHADER_STAGE;
-		shader.UniformSets[0].UniformBindings[1].stage = VERTEX_SHADER_STAGE;
+		shader->UniformSets[0].UniformBindings[0].dataArrayLength = 1;
+		shader->UniformSets[0].UniformBindings[1].dataArrayLength = 1;
+		shader->UniformSets[0].UniformBindings[0].stage = VERTEX_SHADER_STAGE;
+		shader->UniformSets[0].UniformBindings[1].stage = VERTEX_SHADER_STAGE;
 
-		shader.UniformSets[0].UniformBindings[2].dataArrayLength = 3;
-		shader.UniformSets[0].UniformBindings[2].stage = FRAGMENT_SHADER_STAGE;
-		shader.UniformSets[0].UniformBindings[2].Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		shader->UniformSets[0].UniformBindings[2].dataArrayLength = 3;
+		shader->UniformSets[0].UniformBindings[2].stage = FRAGMENT_SHADER_STAGE;
+		shader->UniformSets[0].UniformBindings[2].Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-		shader.UniformSets[0].BindingDatas[2] = &tex;
+		shader->UniformSets[0].BindingDatas[2] = tex;
 
-		shader.UniformSets[0].BindingSize[0] = sizeof(UniformBufferObject);
-		shader.UniformSets[0].BindingSize[1] = sizeof(Color);
+		shader->UniformSets[0].BindingSize[0] = sizeof(UniformBufferObject);
+		shader->UniformSets[0].BindingSize[1] = sizeof(Color);
 		
-		shader.UniformSets[0].UniformBindings[0].Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		shader.UniformSets[0].UniformBindings[1].Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		shader->UniformSets[0].UniformBindings[0].Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		shader->UniformSets[0].UniformBindings[1].Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		
-		shader.UniformSets[0].UniformBindings[0].Range[0] = sizeof(UniformBufferObject);
-		shader.UniformSets[0].UniformBindings[0].OffSet[0] = 0;
-		shader.UniformSets[0].UniformBindings[0].Size[0] = sizeof(UniformBufferObject);
+		shader->UniformSets[0].UniformBindings[0].Range[0] = sizeof(UniformBufferObject);
+		shader->UniformSets[0].UniformBindings[0].OffSet[0] = 0;
+		shader->UniformSets[0].UniformBindings[0].Size[0] = sizeof(UniformBufferObject);
 
-		shader.UniformSets[0].UniformBindings[1].Range[0] = sizeof(Color);
-		shader.UniformSets[0].UniformBindings[1].OffSet[0] = 0;
-		shader.UniformSets[0].UniformBindings[1].Size[0] = sizeof(Color);
+		shader->UniformSets[0].UniformBindings[1].Range[0] = sizeof(Color);
+		shader->UniformSets[0].UniformBindings[1].OffSet[0] = 0;
+		shader->UniformSets[0].UniformBindings[1].Size[0] = sizeof(Color);
 
-		CreateGraphicPipeline(&graphPipeline, device, &allocator,
-			swapChain, shader);
+		CreateGraphicPipeline(&graphPipeline, &allocator, shader,
+			device, swapChain);
 
-		CreateCommander(&commander, swapChain, graphPipeline, device,
+		CreateCommander(&commander, &swapChain, graphPipeline, device,
 			&allocator);
 
 		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
@@ -174,9 +176,9 @@ namespace FRS {
 		RecreateSwapchain(&swapChain, window, components);
 		vkDeviceWaitIdle(device.logicalDevice);
 
-		CreateGraphicPipeline(&graphPipeline, device,
-			&allocator, swapChain, shader);
-		CreateCommander(&commander, swapChain, graphPipeline, device,
+		CreateGraphicPipeline(&graphPipeline, &allocator, shader,
+			device, swapChain);
+		CreateCommander(&commander, &swapChain, graphPipeline, device,
 			&allocator);
 
 		commander.ReadDrawingCommand(std::bind(&Game::Draw, this));
@@ -214,8 +216,8 @@ namespace FRS {
 
 		color.sinTime = 1 - FRSML::Sin(time);
 
-		shader.UniformSets[0].BindingDatas[0] = (void*)(&ubo);
-		shader.UniformSets[0].BindingDatas[1] = (void*)(&color);
+		shader->UniformSets[0].BindingDatas[0] = (void*)(&ubo);
+		shader->UniformSets[0].BindingDatas[1] = (void*)(&color);
 
 		commander.UpdateData(shader);
 
@@ -242,6 +244,7 @@ namespace FRS {
 	void Game::Draw() {
 
 		commander.Clear(1, 1, 1, 1);
+		commander.ClearDepthBuffer(1, 0);
 
 		VkDeviceSize offset[1] = { 0 };
 
@@ -264,7 +267,7 @@ namespace FRS {
 		DestroyDeviceAllocator(allocator);
 		DestroyCommander(&commander);
 		DestroyGraphicPipeline(&graphPipeline);
-		DestroySwapchain(swapChain);
+		DestroySwapchain(&swapChain);
 		DestroyWindow(window);
 		DestroyDevice(device);
 

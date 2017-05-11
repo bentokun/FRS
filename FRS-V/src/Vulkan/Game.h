@@ -7,7 +7,6 @@
 #include <thread>
 
 #include "../Input/Controller.h"
-#include "../../Time.h"
 #include "Window.h"
 #include "Device.h"
 #include "VKExtensions.h"
@@ -20,13 +19,13 @@
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
-#define TFAPI __declspec(dllexport)
+#define TFSAPI __declspec(dllexport)
 #else
-#define TFAPI __declspec(dllimport)
+#define TFSAPI __declspec(dllimport)
 #endif
 #endif
 
-template class TFAPI std::function<void(std::string)>;
+template class TFSAPI std::function<void(std::string)>;
 typedef std::function<void(std::string)> FRSDebug_CallbackFunc;
 typedef VkComponentSwizzle FRSImageComponent;
 
@@ -49,7 +48,7 @@ namespace FRS {
 	//  - A reporter (validiation layer)
 	//  - A Swap Chain
 
-	class TFAPI Game{
+	class TFSAPI Game{
 	public:
 
 		Game() {};
@@ -90,19 +89,18 @@ namespace FRS {
 		std::chrono::duration<float> durationSec{};
 
 		uint32_t frame = 0;
-		Time time{};
 		DeviceAllocator allocator;
 
 		VkInstance instance = VK_NULL_HANDLE;
 
 		ContentManager manager;
-		Shader shader;
+		Shader* shader;
 
 		FRSWindowState state{};
 		int windowHeight, windowWidth = 0;
 
 		Controller controller{};
-		Texture tex{};
+		Texture* tex{};
 
 		Device device;
 		static FRSDebug_CallbackFunc callbackFunc;

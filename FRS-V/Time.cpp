@@ -1,5 +1,4 @@
 #include "Time.h"
-#include <iostream>
 
 namespace FRS {
 	float Time::GetFrameRate() {

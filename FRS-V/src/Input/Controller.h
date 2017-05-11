@@ -4,6 +4,7 @@
 
 #include <Windows.h>
 #include <Xinput.h>
+
 #include <FRSML>
 
 #ifdef FRSV_EXPORTS

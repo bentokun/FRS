@@ -232,6 +232,7 @@ namespace FRS {
 
 	{
 		
+		buffer.buffer = nullptr;
 		buffer.mSize = size; buffer.deviceLocal = localQ;
 		buffer.mUsageFlag = usage; buffer.mAllocator = allocator;
 		buffer.mDevice = device;

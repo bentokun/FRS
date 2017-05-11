@@ -1,21 +1,23 @@
 #pragma once
 
+#pragma warning (disable: 4251 4267)
+
 #include <chrono>
 #include <thread>
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
-#define TFAPI __declspec(dllexport)
+#define TFSAPI __declspec(dllexport)
 #else
-#define TFAPI __declspec(dllimport)
+#define TFSAPI __declspec(dllimport)
 #endif
 #endif
 
 namespace FRS {
 
-	struct TFAPI Time {
+	struct TFSAPI Time {
 		uint32_t frame = 0;
-		std::chrono::time_point<std::chrono::steady_clock> lTime{};
+		std::chrono::time_point<std::chrono::steady_clock> lTime;
 
 		float previousFramerate = 0;
 
@@ -23,6 +25,6 @@ namespace FRS {
 	};
 
 
-	TFAPI void AdjustCurrentThreadFPS(int fps);
+	TFSAPI void AdjustCurrentThreadFPS(int fps);
 
 }

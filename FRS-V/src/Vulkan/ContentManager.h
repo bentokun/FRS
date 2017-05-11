@@ -14,15 +14,15 @@
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
-#define TFAPI __declspec(dllexport)
+#define TFSAPI __declspec(dllexport)
 #else
-#define TFAPI __declspec(dllimport)
+#define TFSAPI __declspec(dllimport)
 #endif
 #endif
 
 namespace FRS {
 
-	class TFAPI ContentManager {
+	class TFSAPI ContentManager {
 	public:
 
 		ContentManager() = default;
@@ -31,41 +31,11 @@ namespace FRS {
 		friend void CreateContentManager(ContentManager* manager,
 			Device device, DeviceAllocator* allocator);
 
-		Shader Load(std::string path, std::string path2) {
+		Shader* Load(std::string path, std::string path2);
+		Texture* Load(std::string path);
 
-			Shader shader = ReadModuleShader(device, path, path2);
-			shaders.push_back(shader);
-
-			return shader;
-		}
-
-		Texture Load(std::string path) {
-
-			Texture texture = ReadTexture(device, allocator,
-				TEXTURE_2D, path);
-
-			textures.push_back(texture);
-			return texture;
-
-		}
-
-
-		void Unload(Shader para) {
-
-			auto shaderToFind = std::find(
-				shaders.begin(), shaders.end(), para
-			);
-
-			if (shaderToFind != shaders.end()) {
-				std::cout << "Destroyed!" << std::endl;
-				Destroy(para);
-				shaders.erase(shaderToFind);
-			}
-			else {
-				std::cout << "Haven't destroy shader!" << std::endl;
-			}
-
-		}
+		void Unload(Shader* para);
+		void Unload(Texture* para);
 
 
 	private:

@@ -2,12 +2,66 @@
 
 namespace FRS {
 
+	namespace Extensions {
+		void CreateDepthBuffer(Device device, DeviceAllocator* allocator, Swapchain* swapChain, Commander* commander) {
+			auto& lambdaFunc = [&](VkPhysicalDevice device,
+				std::vector<VkFormat> candidates, VkImageTiling imageTiling,
+				VkFormatFeatureFlags flags) -> VkFormat {
+
+				for (VkFormat format : candidates) {
+					VkFormatProperties prop{};
+					vkGetPhysicalDeviceFormatProperties(device, format, &prop);
+
+					if (imageTiling == VK_IMAGE_TILING_LINEAR && (prop.linearTilingFeatures & flags) == flags) {
+						return format;
+					}
+					else {
+						if (imageTiling == VK_IMAGE_TILING_OPTIMAL &&
+							(prop.optimalTilingFeatures & flags) == flags) {
+							return format;
+						}
+					}
+				}
+
+				return VK_FORMAT_UNDEFINED;
+
+			};
+
+			std::vector<VkFormat> format =
+			{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
+
+			VkFormat depthFormat = lambdaFunc(device.physicalDevice, format,
+				VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+			std::vector<int> width; width.push_back(swapChain->swapChainExtent.width);
+			std::vector<int> height; height.push_back(swapChain->swapChainExtent.height);
+			std::vector<int> size; size.push_back(0);
+			std::vector<unsigned char> data;
+
+			swapChain->depthBuffer = Texture(device, data,
+				width, height, size, 1, 1, VK_IMAGE_TYPE_2D,
+				depthFormat, allocator,
+				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+			swapChain->depthBuffer.CreateImageView({ VK_COMPONENT_SWIZZLE_IDENTITY }, VK_IMAGE_ASPECT_DEPTH_BIT);
+		
+			commander->LayoutImage(&swapChain->depthBuffer,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				0, 1, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+				VK_IMAGE_ASPECT_DEPTH_BIT);
+
+		}
+	}
+
 #pragma region CREATE_STAGE
-	Commander::Commander(Swapchain swapChain,
+	Commander::Commander(Swapchain* swapChain,
 		GraphicPipeline pipeline,
 		Device device,
 		DeviceAllocator* allocator):
 	allocator(allocator){
+
+		bool haveDestroy = false;
 
 		if (commandPool != VK_NULL_HANDLE) {
 
@@ -22,6 +76,7 @@ namespace FRS {
 					commandPool, transfererCommandBuffer.size(),
 					transfererCommandBuffer.data());
 			}
+
 			if (indexCommandBuffer.size() > 0) {
 				vkFreeCommandBuffers(device.logicalDevice,
 					commandPool, indexCommandBuffer.size(),
@@ -31,13 +86,11 @@ namespace FRS {
 			DestroyCommander(this);
 		}
 
-		this->device = device;
-		this->pipe = pipeline;
-		this->chain = swapChain;
-		this->bufferIndex = this->transferIndex = this->indexIndices = 0;
-		this->uniformWriteDescriptorSet = this->pipe.GetWriteDescriptorLayout();
-		this->uniformDescriptorPoolSize = this->pipe.GetDescriptorPoolSize();
-		this->desSetLayouts = this->pipe.GetUniformDescriptorSetLayout();
+		device = device;
+		pipe = pipeline;
+		chain = swapChain;
+		bufferIndex = transferIndex = indexIndices = 0;
+		desSetLayouts = pipe.GetUniformDescriptorSetLayout();
 
 		staticBuffers = pipe.GetStaticBuffer();
 		uniformBuffers = pipe.GetUniformBuffer();
@@ -48,8 +101,9 @@ namespace FRS {
 		uniformTransferBuffers.resize(uniformBuffers.size());
 		indexTransferBuffers.resize(indexBuffers.size());
 		texTransferBuffers.resize(realTextures.size());
+		textureTransfererCmdBuff.resize(realTextures.size());
 
-		for (uint32_t i = 0; i < staticBuffers.size(); i++) {
+		for (uint32_t i = 0; i <staticBuffers.size(); i++) {
 
 			CreateBuffer(staticTransferBuffers[i], device,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -79,19 +133,16 @@ namespace FRS {
 		for (uint32_t i = 0; i < realTextures.size(); i++) {
 			CreateBuffer(texTransferBuffers[i], device,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				realTextures[i].GetSize(),
+				realTextures[i]->GetTotalSize(),
 				false, allocator);
 		}
 
 		vkGetDeviceQueue(device.logicalDevice, device.GetGraphicFamily(), 0, &graphicQueue);
 		vkGetDeviceQueue(device.logicalDevice, device.GetPresentFamily(), 0, &presentQueue);
 
-		buffers = Framebuffers(swapChain, pipeline, device);
-
-		indexCommandBuffer.resize(indexBuffers.size(), VK_NULL_HANDLE);
-		commandBuffer.resize(buffers.frameBuffer.size(), VK_NULL_HANDLE);
-		transfererCommandBuffer.resize(staticBuffers.size(), VK_NULL_HANDLE);
-		textureTransfererCmdBuff.resize(realTextures.size(), VK_NULL_HANDLE);
+		commandBuffer.clear();
+		transfererCommandBuffer.clear();
+		indexCommandBuffer.clear();
 
 		VkCommandPoolCreateInfo poolInfo = {};
 
@@ -106,42 +157,6 @@ namespace FRS {
 		if (poolResult != VK_SUCCESS) {
 			throw std::runtime_error("Lol");
 		}
-
-		VkCommandBufferAllocateInfo allocInfo = {};
-
-		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.commandPool = commandPool;
-		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandBufferCount = (uint32_t)(buffers.frameBuffer.size());
-
-		VkResult allocRes = vkAllocateCommandBuffers(device.logicalDevice,
-			&allocInfo,
-			commandBuffer.data());
-
-		FRS_ASSERT_WV(allocRes != VK_SUCCESS, "Cant alloc command buffer!", allocRes,
-			0);
-
-		allocInfo.commandBufferCount = staticBuffers.size();
-
-		VkResult allocRes2 = vkAllocateCommandBuffers(device.logicalDevice,
-			&allocInfo,
-			transfererCommandBuffer.data());
-
-		FRS_S_ASSERT(allocRes2 != VK_SUCCESS);
-
-		allocInfo.commandBufferCount = indexBuffers.size();
-		VkResult allocRes3 = vkAllocateCommandBuffers(device.logicalDevice,
-			&allocInfo,
-			indexCommandBuffer.data());
-
-		FRS_S_ASSERT(allocRes3 != VK_SUCCESS);
-
-		allocInfo.commandBufferCount = realTextures.size();
-		VkResult allocRes4 = vkAllocateCommandBuffers(device.logicalDevice,
-			&allocInfo,
-			textureTransfererCmdBuff.data());
-
-		FRS_S_ASSERT(allocRes4 != VK_SUCCESS);
 
 		VkSemaphoreCreateInfo semaphoreInfo = {};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -162,7 +177,56 @@ namespace FRS {
 		FRS_S_ASSERT(res2 != VK_SUCCESS);
 		FRS_S_ASSERT(res3 != VK_SUCCESS);
 
-		CreateUniformDescriptorSets();
+		Extensions::CreateDepthBuffer(device, allocator, swapChain, this);
+		buffers = Framebuffers(*swapChain, pipeline, device);
+
+		commandBuffer.resize(buffers.frameBuffer.size(), VK_NULL_HANDLE);
+		transfererCommandBuffer.resize(staticBuffers.size(), VK_NULL_HANDLE);
+		indexCommandBuffer.resize(indexBuffers.size(), VK_NULL_HANDLE);
+		textureTransfererCmdBuff.resize(realTextures.size(), VK_NULL_HANDLE);
+
+		VkCommandBufferAllocateInfo allocInfo = {};
+
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = (uint32_t)(buffers.frameBuffer.size());
+
+		VkResult allocRes = vkAllocateCommandBuffers(device.logicalDevice,
+			&allocInfo,
+			commandBuffer.data());
+
+		FRS_ASSERT_WV(allocRes != VK_SUCCESS, "Cant alloc command buffer!", allocRes,
+			0);
+
+		if (staticBuffers.size() > 0) {
+			allocInfo.commandBufferCount = staticBuffers.size();
+
+			VkResult allocRes2 = vkAllocateCommandBuffers(device.logicalDevice,
+				&allocInfo,
+				transfererCommandBuffer.data());
+
+			FRS_S_ASSERT(allocRes2 != VK_SUCCESS);
+		}
+
+		if (indexBuffers.size() > 0) {
+			allocInfo.commandBufferCount = indexBuffers.size();
+			VkResult allocRes3 = vkAllocateCommandBuffers(device.logicalDevice,
+				&allocInfo,
+				indexCommandBuffer.data());
+
+			FRS_S_ASSERT(allocRes3 != VK_SUCCESS);
+		}
+
+
+		if (realTextures.size() > 0) {
+			allocInfo.commandBufferCount = realTextures.size();
+			VkResult allocRes4 = vkAllocateCommandBuffers(device.logicalDevice,
+				&allocInfo,
+				textureTransfererCmdBuff.data());
+
+			FRS_S_ASSERT(allocRes4 != VK_SUCCESS);
+		}
 
 		for (auto& buffer : staticBuffers) {
 
@@ -171,9 +235,8 @@ namespace FRS {
 			}
 
 			SetStaticData(buffer,
-				0, buffer.transferSize, buffer.dataPointer);
+				0, buffer.transferSize, buffer.directData);
 		}
-
 
 		for (auto& buffer : indexBuffers) {
 
@@ -181,16 +244,52 @@ namespace FRS {
 				throw std::runtime_error("Pass data pointer may fail");
 			}
 
-			SetIndexData(buffer, buffer.GetBlock().offSet,
+			SetIndexData(buffer, 0,
 				buffer.transferSize, buffer.directData);
 		}
+
+		for (auto& tex : realTextures) {
+
+			if (tex->GetImage() == nullptr) {
+				throw std::runtime_error("Pass data pointer may fail");
+			}
+
+			SetStaticData(tex, 0);
+
+			tex->CreateImageView();
+			tex->CreateSampler();
+
+		}
+
+		for (uint32_t i = 0; i < pipe.totalSet; i++) {
+			std::vector<Buffer> gBuffers;
+			std::vector<Texture*> gTextures;
+
+			//They won't be messed up, since they were push_back in order
+			for (uint32_t j = 0; j < pipe.sizePerSet[i]; j++) {
+				gBuffers.push_back(uniformBuffers[j]);
+			}
+
+			for (uint32_t j = 0; j < pipe.sizeTexPerSet[i]; j++) {
+				gTextures.push_back(realTextures[j]);
+
+			}
+
+			pipe.GenerateWriteDescriptor(gBuffers,
+				gTextures, i);
+		}
+
+		uniformWriteDescriptorSet = pipe.GetWriteDescriptorLayout();
+		uniformDescriptorPoolSize = pipe.GetDescriptorPoolSize();
+
+		CreateUniformDescriptorSets();
+
 
 
 	}
 
-
 	void CreateCommander(Commander* commander, 
-		Swapchain swapChain,
+		Swapchain* swapChain,
 		GraphicPipeline pipeline,
 		Device device,
 		DeviceAllocator* allocator) {
@@ -269,23 +368,16 @@ namespace FRS {
 		for (uint32_t i = 0; i < commander->realTextures.size(); i++) {
 			CreateBuffer(commander->texTransferBuffers[i], device,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				commander->realTextures[i].GetSize(),
+				commander->realTextures[i]->GetTotalSize(),
 				false, allocator);
 		}
 
 		vkGetDeviceQueue(device.logicalDevice, device.GetGraphicFamily(), 0, &commander->graphicQueue);
 		vkGetDeviceQueue(device.logicalDevice, device.GetPresentFamily(), 0, &commander->presentQueue);
 
-		commander->buffers = Framebuffers(swapChain, pipeline, device);
-
 		commander->commandBuffer.clear();
 		commander->transfererCommandBuffer.clear();
 		commander->indexCommandBuffer.clear();
-
-		commander->commandBuffer.resize(commander->buffers.frameBuffer.size(), VK_NULL_HANDLE);
-		commander->transfererCommandBuffer.resize(commander->staticBuffers.size(), VK_NULL_HANDLE);
-		commander->indexCommandBuffer.resize(commander->indexBuffers.size(), VK_NULL_HANDLE);
-		commander->textureTransfererCmdBuff.resize(commander->realTextures.size(), VK_NULL_HANDLE);
 
 		VkCommandPoolCreateInfo poolInfo = {};
 
@@ -300,6 +392,33 @@ namespace FRS {
 		if (poolResult != VK_SUCCESS) {
 			throw std::runtime_error("Lol");
 		}
+
+		VkSemaphoreCreateInfo semaphoreInfo = {};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+		VkResult res1 = vkCreateSemaphore(device.logicalDevice,
+			&semaphoreInfo, nullptr, &commander->imageSemaphore);
+
+		VkResult res2 = vkCreateSemaphore(device.logicalDevice,
+			&semaphoreInfo, nullptr, &commander->rendererSemaphore);
+
+		VkResult res3 = vkCreateFence(device.logicalDevice,
+			&fenceInfo, nullptr, &commander->dataTransferFence);
+
+		FRS_S_ASSERT(res1 != VK_SUCCESS);
+		FRS_S_ASSERT(res2 != VK_SUCCESS);
+		FRS_S_ASSERT(res3 != VK_SUCCESS);
+
+		Extensions::CreateDepthBuffer(device, allocator, swapChain, commander);
+		commander->buffers = Framebuffers(*swapChain, pipeline, device);
+
+		commander->commandBuffer.resize(commander->buffers.frameBuffer.size(), VK_NULL_HANDLE);
+		commander->transfererCommandBuffer.resize(commander->staticBuffers.size(), VK_NULL_HANDLE);
+		commander->indexCommandBuffer.resize(commander->indexBuffers.size(), VK_NULL_HANDLE);
+		commander->textureTransfererCmdBuff.resize(commander->realTextures.size(), VK_NULL_HANDLE);
 
 		VkCommandBufferAllocateInfo allocInfo = {};
 
@@ -344,27 +463,6 @@ namespace FRS {
 			FRS_S_ASSERT(allocRes4 != VK_SUCCESS);
 		}
 		
-
-
-		VkSemaphoreCreateInfo semaphoreInfo = {};
-		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		VkFenceCreateInfo fenceInfo = {};
-		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-		VkResult res1 = vkCreateSemaphore(device.logicalDevice,
-			&semaphoreInfo, nullptr, &commander->imageSemaphore);
-
-		VkResult res2 = vkCreateSemaphore(device.logicalDevice,
-			&semaphoreInfo, nullptr, &commander->rendererSemaphore);
-
-		VkResult res3 = vkCreateFence(device.logicalDevice,
-			&fenceInfo, nullptr, &commander->dataTransferFence);
-
-		FRS_S_ASSERT(res1 != VK_SUCCESS);
-		FRS_S_ASSERT(res2 != VK_SUCCESS);
-		FRS_S_ASSERT(res3 != VK_SUCCESS);
-		
 		for (auto& buffer : commander->staticBuffers) {
 
 			if (buffer.directData == nullptr) {
@@ -387,18 +485,20 @@ namespace FRS {
 
 		for (auto& tex : commander->realTextures) {
 
-			if (tex.GetImage() == nullptr) {
+			if (tex->GetImage() == nullptr) {
 				throw std::runtime_error("Pass data pointer may fail");
 			}
 
-			commander->SetStaticData(tex, 0);
-			tex.CreateSampler();
+			commander->SetStaticData(tex, 0); 
+
+			tex->CreateImageView();
+			tex->CreateSampler();
 
 		}
 
 		for (uint32_t i = 0; i < commander->pipe.totalSet; i++) {
 			std::vector<Buffer> gBuffers;
-			std::vector<Texture> gTextures;
+			std::vector<Texture*> gTextures;
 			
 			//They won't be messed up, since they were push_back in order
 			for (uint32_t j = 0; j < commander->pipe.sizePerSet[i]; j++) {
@@ -410,7 +510,8 @@ namespace FRS {
 
 			}
 
-			commander->pipe.GenerateWriteDescriptor(gBuffers, gTextures, i);
+			commander->pipe.GenerateWriteDescriptor(gBuffers,
+				gTextures, i);
 		}
 
 		commander->uniformWriteDescriptorSet = commander->pipe.GetWriteDescriptorLayout();
@@ -423,14 +524,14 @@ namespace FRS {
 #pragma endregion
 
 #pragma region DATA_HANDLE
-	void Commander::UpdateData(Shader shader) {
+	void Commander::UpdateData(Shader* shader) {
 	
 		for (uint32_t i = 0; i < pipe.totalSet; i++) {
 			for (uint32_t j = 0; j < pipe.sizePerSet[i]; j++) {
 				
 				SetSimulatousData(uniformBuffers[(i+1)*j],
-					0, shader.UniformSets[i].BindingSize[j],
-					shader.UniformSets[i].BindingDatas[j]);
+					0, shader->UniformSets[i].BindingSize[j],
+					shader->UniformSets[i].BindingDatas[j]);
 
 			}
 		}
@@ -466,9 +567,12 @@ namespace FRS {
 		bufferIndex = 0;
 	}
 
-	void Commander::LayoutImage(Texture para,VkImageLayout oldLayout,
-		VkImageLayout newLayout, uint32_t baseLevel, uint32_t levelCount, VkPipelineStageFlags srcStage,
-		VkPipelineStageFlags dstStage) {
+	void Commander::LayoutImage(Texture* para,
+		VkImageLayout oldLayout,
+		VkImageLayout newLayout, uint32_t baseLevel,
+		uint32_t levelCount, VkPipelineStageFlags srcStage,
+		VkPipelineStageFlags dstStage,
+		VkImageAspectFlags flags) {
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -493,8 +597,8 @@ namespace FRS {
 		barrier.newLayout = newLayout;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = para.GetVkImage();
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.image = para->GetVkImage();
+		barrier.subresourceRange.aspectMask = flags;
 		barrier.subresourceRange.baseMipLevel = baseLevel;
 		barrier.subresourceRange.levelCount = levelCount;
 		barrier.subresourceRange.baseArrayLayer = 0;
@@ -536,31 +640,36 @@ namespace FRS {
 
 		switch (newLayout)
 		{
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+				barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				barrier.dstAccessMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			if (barrier.srcAccessMask == 0)
-			{
-				barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-			}
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			break;
-		default:
-			break;
+				if (para->GetFormat() == VK_FORMAT_D32_SFLOAT_S8_UINT || VK_FORMAT_D32_SFLOAT_S8_UINT) {
+					barrier.dstAccessMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+				}
+				break;
+
+			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+				if (barrier.srcAccessMask == 0)
+				{
+					barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+				}
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+	
+			default:
+				break;
 		}
 
 		vkCmdPipelineBarrier(commandBuffer,
@@ -580,7 +689,7 @@ namespace FRS {
 
 	}
 
-	void Commander::SetData(Buffer src, Texture des, uint32_t offsetSrc, uint32_t offsetDst) {
+	void Commander::SetData(Buffer src, Texture* des, uint32_t offsetSrc, uint32_t offsetDst) {
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -593,10 +702,10 @@ namespace FRS {
 
 		uint32_t offset = 0;
 
-		for (uint32_t i = 0; i < des.GetMipLevel(); i++) {
+		for (int i = 0; i < des->GetMipLevel(); i++) {
 			copyRegion.imageSubresource.mipLevel = i;
-			copyRegion.imageExtent.width = des.tex[i].extent().x;
-			copyRegion.imageExtent.height = des.tex[i].extent().y; 
+			copyRegion.imageExtent.width = des->GetWidth()[i];
+			copyRegion.imageExtent.height = des->GetHeight()[i];
 			copyRegion.imageSubresource.layerCount = 1;
 			copyRegion.imageSubresource.baseArrayLayer = 0;
 			copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -605,17 +714,18 @@ namespace FRS {
 
 			copyRegions.push_back(copyRegion);
 			
-			offset += des.tex[i].size();
+			offset += des->GetSize()[i];
 
 		}
 
 		LayoutImage(des, VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
-			des.GetMipLevel(),
+			des->GetMipLevel(),
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 		vkCmdCopyBufferToImage(textureTransfererCmdBuff[texTransIndex],
-			src.buffer, des.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			src.buffer, des->GetVkImage(),
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			copyRegions.size(), copyRegions.data());
 
 		vkEndCommandBuffer(textureTransfererCmdBuff[texTransIndex]);
@@ -623,7 +733,8 @@ namespace FRS {
 	}
 
 	
-	void Commander::SetStaticData(Texture tex, VkDeviceSize offset) {
+	void Commander::SetStaticData(Texture* tex,
+		VkDeviceSize offset) {
 
 		uint32_t index;
 
@@ -639,10 +750,10 @@ namespace FRS {
 
 	
 		memcpy(texTransferBuffers[index].GetBlock().ptr, 
-			tex.tex.data(), tex.GetSize());
+			tex->GetImage(), tex->GetTotalSize());
 	
 		SetData(texTransferBuffers[index], tex, 0,
-			tex.GetBlock().offSet);
+			tex->GetBlock().offSet);
 
 		std::vector<VkCommandBuffer> commandBufferz;
 		commandBufferz.push_back(textureTransfererCmdBuff[index]);
@@ -652,7 +763,7 @@ namespace FRS {
 
 		LayoutImage(tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0,
-			tex.GetMipLevel(),
+			tex->GetMipLevel(),
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 	}
@@ -908,14 +1019,15 @@ namespace FRS {
 			DestroyBuffer(commander->device, &commander->texTransferBuffers[i]);
 		}
 
-		for (int i = 0; i < commander->realTextures.size(); i++) {
-			ParticallyDestroyTexture(commander->realTextures[i]);
-		}
-
 		commander->uniformTransferBuffers.resize(0);
 		commander->staticTransferBuffers.resize(0);
 		commander->indexTransferBuffers.resize(0);
 		commander->texTransferBuffers.resize(0);
+
+		for (int i = 0; i < commander->realTextures.size(); i++) {
+			DestroyTextureViews(commander->realTextures[i]);
+			DestroyTextureSampler(commander->realTextures[i]);
+		}
 
 		vkDestroyFence(commander->device.logicalDevice, commander->dataTransferFence,
 			nullptr);
@@ -1001,8 +1113,18 @@ namespace FRS {
 		uint32_t dynamicOffsetCount, uint32_t* dynamicOffset) {
 
 		vkCmdBindDescriptorSets(commandBuffer[currentBuffer], bindPoint,
-			pipe.mLayout, 0, uniformDescriptorSets.size(), uniformDescriptorSets.data(),
+			pipe.GetPipelineLayout(), 0, uniformDescriptorSets.size(), uniformDescriptorSets.data(),
 			dynamicOffsetCount, dynamicOffset);
+	}	
+	
+	void Commander::ClearDepthBuffer(uint16_t r,
+		uint16_t g) {
+
+		bufferClearColor.depthStencil.depth = r;
+		bufferClearColor.depthStencil.stencil = g;
+
+		hasClearBufferColor = (!hasClearBufferColor) ? true : true;
+
 	}
 
 #pragma endregion
@@ -1034,20 +1156,28 @@ namespace FRS {
 
 		VkRenderPassBeginInfo renderBeginInfo = {};
 		renderBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderBeginInfo.renderPass = pipe.mRenderPass;
+		renderBeginInfo.renderPass = pipe.GetRenderPass();
 		renderBeginInfo.framebuffer = buffers.frameBuffer[currentBuffer];
-		renderBeginInfo.renderArea.extent = chain.swapChainExtent;
+		renderBeginInfo.renderArea.extent = chain->swapChainExtent;
 		renderBeginInfo.renderArea.offset = { 0,0 };
+		
+		if (!hasClearBufferColor) {
+			FRS_MESSAGE("Haven't clear the depth buffer, consulting of garbage data");
+		}
 
-		renderBeginInfo.clearValueCount = 1;
-		renderBeginInfo.pClearValues = &clearColor;
+		std::array<VkClearValue, 2> clearValues = {};
+		clearValues[0].color = this->clearColor.color;
+		clearValues[1].depthStencil = this->bufferClearColor.depthStencil;
+
+		renderBeginInfo.clearValueCount = 2;
+		renderBeginInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(commandBuffer[currentBuffer], &renderBeginInfo,
 			VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindPipeline(commandBuffer[currentBuffer],
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipe.pipeline);
+			pipe.GetPipeline());
 
 
 	}
@@ -1057,17 +1187,54 @@ namespace FRS {
 		vkCmdEndRenderPass(commandBuffer[currentBuffer]);
 
 		if (vkEndCommandBuffer(commandBuffer[currentBuffer]) != VK_SUCCESS) {
-
 			throw std::runtime_error("Command Buffer recording state failed, check to see if you have turn on option to start recording");
-
 		}
+
+	}
+
+	void Commander::CreateUniformDescriptorSets() {
+
+		VkDescriptorPoolCreateInfo poolInfo = {};
+
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.maxSets = desSetLayouts.size();
+		poolInfo.poolSizeCount = uniformDescriptorPoolSize.data()->size();
+		poolInfo.pPoolSizes = uniformDescriptorPoolSize.data()->data();
+
+		VkResult res1 = vkCreateDescriptorPool(device.logicalDevice,
+			&poolInfo, nullptr, &descriptorPool);
+
+		for (uint32_t i = 0; i < desSetLayouts.size(); i++) {
+
+			VkDescriptorSetAllocateInfo allocInfo = {};
+			allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			allocInfo.descriptorPool = descriptorPool;
+
+			allocInfo.descriptorSetCount = desSetLayouts.size();
+			allocInfo.pSetLayouts = desSetLayouts.data();
+
+			VkDescriptorSet set = {};
+
+			VkResult res2 = vkAllocateDescriptorSets(device.logicalDevice,
+				&allocInfo, &set);
+
+			uniformDescriptorSets.push_back(set);
+
+			for (uint32_t j = 0; j < uniformWriteDescriptorSet[i].size(); j++) {
+				uniformWriteDescriptorSet[i][j].dstSet = set;
+			}
+
+			UpdateDescriptorSet(uniformWriteDescriptorSet[i].size(),
+				uniformWriteDescriptorSet[i].data(), 0, nullptr);
+		}
+
 
 	}
 
 	void Commander::Submit() {
 
 		VkResult result = vkAcquireNextImageKHR(device.logicalDevice,
-			chain.swapChain, (uint64_t)std::numeric_limits<uint64_t>::max,
+			chain->swapChain, (uint64_t)std::numeric_limits<uint64_t>::max,
 			imageSemaphore, VK_NULL_HANDLE,
 			&imageIndex);
 
@@ -1104,7 +1271,7 @@ namespace FRS {
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &(chain.swapChain);
+		presentInfo.pSwapchains = &(chain->swapChain);
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 

@@ -17,51 +17,51 @@
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
-#define TFAPI __declspec(dllexport)
+#define TFSAPI __declspec(dllexport)
 #else
-#define TFAPI __declspec(dllimport)
+#define TFSAPI __declspec(dllimport)
 #endif
 #endif
 
 namespace FRS {
 
-	TFAPI std::vector<std::string> vkInstanceExtensions();
-	TFAPI FRS_STATE vkCheckValidation();
+	TFSAPI std::vector<std::string> vkInstanceExtensions();
+	TFSAPI FRS_STATE vkCheckValidation();
 
-	TFAPI void CreateInstance(std::string appName, bool EnableValidation, VkInstance* instance);
+	TFSAPI void CreateInstance(std::string appName, bool EnableValidation, VkInstance* instance);
 
-	TFAPI VkResult CreateDebugReportCallback(VkInstance instance,
+	TFSAPI VkResult CreateDebugReportCallback(VkInstance instance,
 		const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
 		const VkAllocationCallbacks* pAllocator,
 		VkDebugReportCallbackEXT* pCallback);
 
-	TFAPI void DestroyDebugReportCallbackEXT(VkInstance instance,
+	TFSAPI void DestroyDebugReportCallbackEXT(VkInstance instance,
 		VkDebugReportCallbackEXT callback,
 		const VkAllocationCallbacks* pAllocator);
 
-	TFAPI FRS_STATE vkEnabledConsoleReport(VkInstance instance,
+	TFSAPI FRS_STATE vkEnabledConsoleReport(VkInstance instance,
 		PFN_vkDebugReportCallbackEXT callbackFunc,
 		VkDebugReportCallbackEXT* reportext);
 
 	//Choose between physicalDevice had in the computer
-	TFAPI FRS_STATE ChoosePhysicalDevice(VkInstance instance, VkPhysicalDevice& device);
-	TFAPI FRS_STATE CreateLogicalDevice(VkPhysicalDevice device, FRS::Window window,
+	TFSAPI FRS_STATE ChoosePhysicalDevice(VkInstance instance, VkPhysicalDevice& device);
+	TFSAPI FRS_STATE CreateLogicalDevice(VkPhysicalDevice device, FRS::Window window,
 		 VkDevice* logicalDevice,
 		 bool validationLayer);
 
-	TFAPI std::vector<std::string> GetDeviceExtensionSupport(VkPhysicalDevice device);
-	TFAPI FRS_STATE GetSwapChainSupport(VkPhysicalDevice device);
+	TFSAPI std::vector<std::string> GetDeviceExtensionSupport(VkPhysicalDevice device);
+	TFSAPI FRS_STATE GetSwapChainSupport(VkPhysicalDevice device);
 
-	TFAPI VkSurfaceCapabilitiesKHR GetWindowSurfaceCapabilities(VkPhysicalDevice device, Window window);
+	TFSAPI VkSurfaceCapabilitiesKHR GetWindowSurfaceCapabilities(VkPhysicalDevice device, Window window);
 	
-	TFAPI VkExtent2D GetSuitableWindowExtent(VkPhysicalDevice device, Window window);
-	TFAPI VkSurfaceFormatKHR GetSuitableWindowSurfaceFormat(VkPhysicalDevice device, Window window);
+	TFSAPI VkExtent2D GetSuitableWindowExtent(VkPhysicalDevice device, Window window);
+	TFSAPI VkSurfaceFormatKHR GetSuitableWindowSurfaceFormat(VkPhysicalDevice device, Window window);
 
-	TFAPI VkPresentModeKHR GetSuitableWindowPresentMode(VkPhysicalDevice device, Window window);
+	TFSAPI VkPresentModeKHR GetSuitableWindowPresentMode(VkPhysicalDevice device, Window window);
 
-	TFAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window window);
+	TFSAPI uint32_t GetMaxImageViewCount(VkPhysicalDevice device, Window window);
 
 	//Rate the score for a physical device
-	TFAPI int PhysicalDeviceScore(VkPhysicalDevice device);
+	TFSAPI int PhysicalDeviceScore(VkPhysicalDevice device);
 
 }

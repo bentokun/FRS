@@ -1,6 +1,8 @@
 #pragma once
 #pragma warning (disable: 4251 4267)
 
+#include <array>
+
 #include "Rules.h"
 #include "Device.h"
 #include "SwapChain.h"

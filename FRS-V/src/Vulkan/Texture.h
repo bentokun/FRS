@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vulkan.h>
-#include <gli\gli.hpp>
 
 #include "Buffer.h"
 
@@ -29,85 +28,16 @@ namespace FRS {
 
 		void* dataPointer = nullptr;
 
-		friend void ParticallyDestroyTexture(Texture tex) {
-			vkDestroyImageView(tex.device.logicalDevice, 
-				tex.imageView, nullptr);
-			vkDestroySampler(tex.device.logicalDevice, 
-				tex.samplers[0], nullptr);
-			vkDestroySampler(tex.device.logicalDevice, 
-				tex.samplers[1], nullptr);
-			vkDestroySampler(tex.device.logicalDevice, 
-				tex.samplers[2], nullptr);
-		}
+		friend void DestroyTextureViews(Texture* tex);
+		friend void DestroyTextureSampler(Texture* tex);
+		friend void FinallyDestroyTexture(Texture* tex);
 
-		friend void FinallyDestroyTexture(Texture tex) {
-			vkDestroyImage(tex.device.logicalDevice, 
-				tex.image, nullptr);
-			tex.allocator->deallocate(tex.block);
-		}
+		void CreateImageView(VkComponentMapping tComponents =
+		{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY ,
+			VK_COMPONENT_SWIZZLE_IDENTITY , VK_COMPONENT_SWIZZLE_IDENTITY },
+			VkImageAspectFlags flag = VK_IMAGE_ASPECT_COLOR_BIT);
 
-		void CreateSampler(VkComponentMapping tComponents = 
-		{VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY ,
-			VK_COMPONENT_SWIZZLE_IDENTITY , VK_COMPONENT_SWIZZLE_IDENTITY }) {
-
-			VkImageViewCreateInfo iCreateInfo = {};
-			iCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			iCreateInfo.image = this->image;
-			iCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			iCreateInfo.subresourceRange.baseMipLevel = 0;
-			iCreateInfo.subresourceRange.levelCount = mipLevel;
-			iCreateInfo.subresourceRange.baseArrayLayer = 0;
-			iCreateInfo.subresourceRange.layerCount = 1;
-			iCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			iCreateInfo.format = format;
-			iCreateInfo.components = { VK_COMPONENT_SWIZZLE_R,
-				VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
-				VK_COMPONENT_SWIZZLE_A };
-
-			vkCreateImageView(device.logicalDevice, &iCreateInfo, nullptr,
-				&imageView);
-
-			samplers.resize(3);
-
-			VkSamplerCreateInfo samplerInfo = {};
-			samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			samplerInfo.magFilter = VK_FILTER_LINEAR;
-			samplerInfo.minFilter = VK_FILTER_LINEAR;
-			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.anisotropyEnable = VK_FALSE;
-			samplerInfo.maxAnisotropy = 1.0f;
-			samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-			samplerInfo.unnormalizedCoordinates = VK_FALSE;
-			samplerInfo.compareEnable = VK_FALSE;
-			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			samplerInfo.minLod = 0;
-			samplerInfo.maxLod = 0;
-			samplerInfo.mipLodBias = 0;
-
-			VkResult res = vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
-				&samplers[0]);
-
-			FRS_S_ASSERT(res != VK_SUCCESS);
-
-			samplerInfo.maxLod = mipLevel;
-
-			VkResult res2 = vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
-				&samplers[1]);
-
-
-			FRS_S_ASSERT(res2 != VK_SUCCESS);
-
-			samplerInfo.anisotropyEnable = VK_TRUE;
-			samplerInfo.maxAnisotropy = 16;
-
-			vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
-				&samplers[2]);
-
-
-		}
+		void CreateSampler();
 
 		Block& GetBlock() {
 			return block;
@@ -121,34 +51,42 @@ namespace FRS {
 			return subresource;
 		}
 
-		uint32_t GetWidth() {
+		std::vector<int> GetWidth() {
 			return texWidth;
 		}
 
-		uint32_t GetHeight() {
+		std::vector<int> GetHeight() {
 			return texHeight;
 		}
 
-		void* GetImage() {
-			return mainImage;
+		unsigned char* GetImage() {
+			return mainImage.data();
 		}
 
-		uint32_t GetSize() {
+		std::vector<int> GetSize() {
 			return size;
 		}
 
 		Texture() {};
 
-		Texture(gli::texture2d tex, Device device, void* image, int texWidth, int texHeight,
-			int mipmapLevel, int layers, int size,
-			VkImageType type, VkFormat format, DeviceAllocator* alloc);
+		Texture(Device device, std::vector<unsigned char> image, std::vector<int> texWidth, std::vector<int> texHeight,
+			std::vector<int> size,
+			int mipmapLevel, int layers,
+			VkImageType type, VkFormat format, DeviceAllocator* alloc,
+			VkImageUsageFlags usageFlag = VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_SAMPLED_BIT);
 			
 		friend void Destroy(Texture texture);
 		friend bool operator == (Texture texture0, Texture texture);
+	
+		bool operator == (Texture* texture0);
 
 		VkDescriptorSetLayoutBinding setUniformLayoutBinding{};
 		VkDescriptorPoolSize poolSize;
 		
+		VkFormat& GetFormat(){
+			return format;
+		}
+
 		VkImage &GetVkImage() {
 			return image;
 		}
@@ -165,15 +103,17 @@ namespace FRS {
 			return mipLevel;
 		}
 
-		gli::texture2d tex;
-		VkImage image = VK_NULL_HANDLE;
+		uint32_t GetTotalSize() {
+			return totalSize;
+		}
 
 	private:
 
 		VkFormat format;
+		VkImage image = VK_NULL_HANDLE;
 
-		int texWidth, texHeight, size = 0;
-		void* mainImage = nullptr;
+		std::vector<int> texWidth, texHeight, size;
+		std::vector<unsigned char> mainImage;
 
 		VkSubresourceLayout           subLayout;
 		VkImageSubresource            subresource;
@@ -181,7 +121,7 @@ namespace FRS {
 		VkImageView imageView = VK_NULL_HANDLE;
 		std::vector<VkSampler> samplers = { VK_NULL_HANDLE };
 
-		uint32_t mipLevel, layers;
+		uint32_t mipLevel, layers, totalSize = 0;
 
 		Block block;
 		DeviceAllocator* allocator;

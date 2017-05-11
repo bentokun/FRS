@@ -8,15 +8,15 @@
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
-#define TFAPI __declspec(dllexport)
+#define TFSAPI __declspec(dllexport)
 #else
-#define TFAPI __declspec(dllimport)
+#define TFSAPI __declspec(dllimport)
 #endif
 #endif
 
 namespace FRS {
 
-	struct TFAPI QueueFamilyIndex {
+	struct TFSAPI QueueFamilyIndex {
 		int graphicsFamily = -1;
 		int presentFamily = -1;
 
@@ -28,16 +28,10 @@ namespace FRS {
 			return presentFamily >= 0;
 		}
 
-		bool operator ==(QueueFamilyIndex ant) {
-			if (graphicsFamily == ant.graphicsFamily &&
-				presentFamily == ant.presentFamily)
-				return true;
-
-			return false;
-		}
+		bool operator ==(QueueFamilyIndex ant);
 	};
 
-	TFAPI QueueFamilyIndex findAllQueueFamily(VkPhysicalDevice device,
+	TFSAPI QueueFamilyIndex findAllQueueFamily(VkPhysicalDevice device,
 		FRS::Window window);
 
 }

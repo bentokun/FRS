@@ -2,10 +2,12 @@
 
 namespace FRS {
 
-	Texture::Texture(gli::texture2d tex, Device device, void* image, int texWidth, int texHeight,
+	Texture::Texture(Device device, std::vector<unsigned char> image, 
+		std::vector<int> texWidth, std::vector<int> texHeight,
+		std::vector<int> size,
 		int mipmapLevel, int layers,
-		int size,
-		VkImageType type, VkFormat format, DeviceAllocator* alloc) :
+		VkImageType type, VkFormat format, DeviceAllocator* alloc,
+		VkImageUsageFlags usageFlag) :
 		texWidth(texWidth),
 		texHeight(texHeight),
 		mainImage(image),
@@ -14,26 +16,26 @@ namespace FRS {
 		mipLevel(mipmapLevel),
 		layers(layers),
 		size(size),
-		tex(tex),
 		format(format)
 	{
-			VkDeviceSize imageSize = texWidth* texHeight * 4;
-
+			for (uint32_t i = 0; i < mipLevel; i++) {
+				totalSize += size[i];
+			}
+			
 			VkImageCreateInfo imageCreateInfo = {};
 			imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 			imageCreateInfo.format = format;
-			imageCreateInfo.mipLevels = tex.levels();
+			imageCreateInfo.mipLevels = mipmapLevel;
 			imageCreateInfo.arrayLayers = 1;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			// Set initial layout of the image to undefined
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageCreateInfo.extent.width = this->texWidth;
-			imageCreateInfo.extent.height = texHeight;
+			imageCreateInfo.extent.width = texWidth[0];
+			imageCreateInfo.extent.height = texHeight[0];
 			imageCreateInfo.extent.depth = 1;
-			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			imageCreateInfo.usage = usageFlag;
 
 			VkResult res1 = vkCreateImage(device.logicalDevice,
 				&imageCreateInfo, nullptr, &this->image);
@@ -90,5 +92,101 @@ namespace FRS {
 			return true;
 
 		return false;
+	}
+
+	bool Texture::operator == (Texture* texture0) {
+
+		if (texture0->imageView == this->imageView
+			&& texture0->block == this->block)
+
+			return true;
+
+		return false;
+	}
+
+	void DestroyTextureViews(Texture* tex) {
+		vkDestroyImageView(tex->device.logicalDevice,
+			tex->imageView, nullptr);
+	}
+
+	void DestroyTextureSampler(Texture* tex) {
+		vkDestroySampler(tex->device.logicalDevice,
+			tex->samplers[0], nullptr);
+		vkDestroySampler(tex->device.logicalDevice,
+			tex->samplers[1], nullptr);
+		vkDestroySampler(tex->device.logicalDevice,
+			tex->samplers[2], nullptr);
+	}
+
+	void FinallyDestroyTexture(Texture* tex) {
+		vkDestroyImage(tex->device.logicalDevice,
+			tex->image, nullptr);
+		tex->allocator->deallocate(tex->block);
+	}
+
+	void Texture::CreateImageView(VkComponentMapping tComponents,
+		VkImageAspectFlags flag) {
+
+		VkImageViewCreateInfo iCreateInfo = {};
+		iCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		iCreateInfo.image = this->image;
+		iCreateInfo.subresourceRange.aspectMask = flag;
+		iCreateInfo.subresourceRange.baseMipLevel = 0;
+		iCreateInfo.subresourceRange.levelCount = mipLevel;
+		iCreateInfo.subresourceRange.baseArrayLayer = 0;
+		iCreateInfo.subresourceRange.layerCount = 1;
+		iCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		iCreateInfo.format = format;
+		iCreateInfo.components = { VK_COMPONENT_SWIZZLE_R,
+			VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
+			VK_COMPONENT_SWIZZLE_A };
+
+		vkCreateImageView(device.logicalDevice, &iCreateInfo, nullptr,
+			&imageView);
+	}
+
+	void Texture::CreateSampler() {
+
+
+		samplers.resize(3);
+
+		VkSamplerCreateInfo samplerInfo = {};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.maxAnisotropy = 1.0f;
+		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.minLod = 0;
+		samplerInfo.maxLod = 0;
+		samplerInfo.mipLodBias = 0;
+
+		VkResult res = vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
+			&samplers[0]);
+
+		FRS_S_ASSERT(res != VK_SUCCESS);
+
+		samplerInfo.maxLod = mipLevel;
+
+		VkResult res2 = vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
+			&samplers[1]);
+
+
+		FRS_S_ASSERT(res2 != VK_SUCCESS);
+
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = 16;
+
+		vkCreateSampler(device.logicalDevice, &samplerInfo, nullptr,
+			&samplers[2]);
+
+
 	}
 }

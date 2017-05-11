@@ -7,18 +7,20 @@ namespace FRS {
 		imageViews.resize(0, { VK_NULL_HANDLE });
 	}
 
-	void DestroySwapchain(Swapchain chain) {
+	void DestroySwapchain(Swapchain* chain) {
 
-		for (uint32_t i = 0; i < chain.imageViews.size(); i++) {
-			//vkDestroyImage(chain.device->logicalDevice, chain.images[i], nullptr);
-			vkDestroyImageView(chain.device.logicalDevice, chain.imageViews[i], nullptr);
-
+		for (uint32_t i = 0; i < chain->imageViews.size(); i++) {
+			vkDestroyImageView(chain->device.logicalDevice, chain->imageViews[i],
+				nullptr);
 		}
 
-		chain.imageViews.clear();
-		chain.images.clear();
+		DestroyTextureViews(&chain->depthBuffer);
+		FinallyDestroyTexture(&chain->depthBuffer);
 
-		vkDestroySwapchainKHR(chain.device.logicalDevice, chain.swapChain, nullptr);
+		chain->imageViews.clear();
+		chain->images.clear();
+
+		vkDestroySwapchainKHR(chain->device.logicalDevice, chain->swapChain, nullptr);
 
 	}
 
@@ -109,6 +111,7 @@ namespace FRS {
 		}
 
 		swapChain->device = device;
+
 	}
 
 	
@@ -116,7 +119,8 @@ namespace FRS {
 		Window window, VkComponentSwizzle rgbaOption[4],
 		bool vSync) {
 
-		if (GetSwapChainSupport(device.physicalDevice)!= SUCCESS) {
+
+		if (GetSwapChainSupport(device.physicalDevice) != SUCCESS) {
 			throw std::runtime_error("Device dont support swap chain!");
 		}
 
@@ -125,6 +129,7 @@ namespace FRS {
 			presentMode = VK_PRESENT_MODE_FIFO_KHR;
 		else
 			presentMode = FRS::GetSuitableWindowPresentMode(device.physicalDevice, window);
+
 		format = FRS::GetSuitableWindowSurfaceFormat(device.physicalDevice, window);
 
 		uint32_t imageCount = FRS::GetMaxImageViewCount(device.physicalDevice, window);
@@ -143,7 +148,7 @@ namespace FRS {
 
 		QueueFamilyIndex index = FRS::findAllQueueFamily(device.physicalDevice, window);
 
-		uint32_t queueFamily[] = { index.graphicsFamily, index.presentFamily};
+		uint32_t queueFamily[] = { index.graphicsFamily, index.presentFamily };
 
 		if (index.graphicsFamily != index.presentFamily) {
 			info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -163,21 +168,18 @@ namespace FRS {
 
 		//Prepare for screenshot
 		info.clipped = VK_FALSE;
-
 		info.oldSwapchain = nullptr;
-		
+
 		VkResult result = vkCreateSwapchainKHR(device.logicalDevice, &info, nullptr, &swapChain);
-
 		vkGetSwapchainImagesKHR(device.logicalDevice, swapChain, &imageCount, nullptr);
-
+		
 		images.resize(imageCount);
+		imageViews.resize(imageCount);
 
 		vkGetSwapchainImagesKHR(device.logicalDevice, swapChain, &imageCount, images.data());
 
-		imageViews.resize(imageCount);
-
 		for (int i = 0; i < images.size(); i++) {
-			
+
 			VkImageViewCreateInfo imageViewInfo = {};
 
 			imageViews[i] = VK_NULL_HANDLE;
@@ -196,7 +198,8 @@ namespace FRS {
 			imageViewInfo.subresourceRange.levelCount = 1;
 			imageViewInfo.subresourceRange.baseMipLevel = 0;
 
-			VkResult nresult = vkCreateImageView(device.logicalDevice, &imageViewInfo, nullptr, &(imageViews[i]));
+			VkResult nresult = vkCreateImageView(device.logicalDevice, &imageViewInfo, nullptr, &(
+				imageViews[i]));
 
 		}
 
@@ -208,7 +211,13 @@ namespace FRS {
 		Window window, VkComponentSwizzle rgbaOption[4],
 		bool vSync) {
 
-		
+#pragma region DESTRUCTION
+
+		DestroyTextureViews(&swapChain->depthBuffer);
+		FinallyDestroyTexture(&swapChain->depthBuffer);
+
+#pragma endregion
+
 		if (GetSwapChainSupport(swapChain->device.physicalDevice) != SUCCESS) {
 			throw std::runtime_error("Device dont support swap chain!");
 		}

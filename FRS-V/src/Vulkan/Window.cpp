@@ -10,15 +10,8 @@ namespace FRS {
 		this->instance = instance;
 
 		WNDCLASSEX classEx;
-		const char* ctitle = title.c_str();
-
-		int len;
-		int slength = (int)title.length() + 1;
-		len = MultiByteToWideChar(CP_ACP, 0, title.c_str(), slength, 0, 0);
-		wchar_t* buf = new wchar_t[len];
-		MultiByteToWideChar(CP_ACP, 0, title.c_str(), slength, buf, len);
-		std::wstring r(buf);
-		delete[] buf;
+		
+		std::wstring title_w32 = ConvertToWString(title);
 
 		classEx.cbSize = sizeof(WNDCLASSEX);
 		classEx.style = CS_HREDRAW | CS_VREDRAW;
@@ -34,7 +27,6 @@ namespace FRS {
 		classEx.lpfnWndProc = (WNDPROC)SWndProc;
 
 		if (!RegisterClassExW(&classEx)) {
-			MessageBox(NULL, L"Failed to register Window!", L"Lol", MB_OK | MB_ICONEXCLAMATION);
 			throw std::runtime_error("Can't create Window!");
 		}
 
@@ -90,15 +82,16 @@ namespace FRS {
 		this->height = heightN;
 		this->originX = posX;
 		this->originY = posY;
-		this->title = ctitle;
+		this->title = title.c_str();
 
 		RECT rect = { 0,0,width, height };
 		AdjustWindowRectEx(&rect, wndStyle, FALSE, dwExStyle);
-		width = rect.right - rect.left;
-		height = rect.bottom - rect.top;
+
+		width = static_cast<FRSshort>(rect.right - rect.left);
+		height = static_cast<FRSshort>(rect.bottom - rect.top);
 		
 		this->mainWindow = CreateWindowExW(dwExStyle,
-			L"OPENGL", r.c_str(),
+			L"OPENGL", title_w32.c_str(),
 			wndStyle |WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
 			posX, posY, width, height, NULL,
 			NULL, GetModuleHandleW(NULL), NULL);
@@ -171,7 +164,8 @@ namespace FRS {
 			case WM_KEYDOWN:
 			{
 				if (window->eventStruct.keyFuncCallBack) {
-					window->eventStruct.keyFuncCallBack(wParam, PRESSED);
+					window->eventStruct.keyFuncCallBack(static_cast<int>(wParam),
+						PRESSED);
 				}
 
 				break;
@@ -183,9 +177,12 @@ namespace FRS {
 				if (window->eventStruct.resizeFunc) {
 					RECT windowRect;
 					GetClientRect(hwnd, &windowRect);
-					window->width = windowRect.right - windowRect.left, windowRect.bottom;
-					window->height = windowRect.bottom - windowRect.top;
-					window->eventStruct.resizeFunc(windowRect.right - windowRect.left, windowRect.bottom- windowRect.top);
+
+					window->width  = static_cast<FRSshort>(windowRect.right - windowRect.left, windowRect.bottom);
+					window->height = static_cast<FRSshort>(windowRect.bottom - windowRect.top);
+					
+					window->eventStruct.
+						resizeFunc(windowRect.right - windowRect.left, windowRect.bottom- windowRect.top);
 				}
 
 				break;

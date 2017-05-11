@@ -6,25 +6,17 @@ namespace FRS {
 		TextureType type,
 		std::string path) {
 
-		int width, height, texChannels = 0;
-		int mipLevel, size = 0;
+		std::vector<int> width, height, size;
+		int mipLevel, texChannels = 0;
 		VkFormat format;
 
-		void* imageData = nullptr;
 		char errorMess[256] = {};
 
-		gli::texture2d tex(gli::load(path));
+		std::vector<unsigned char> image = LoadDDS(path.c_str(),
+			&mipLevel, &width, &height, &size, &format, errorMess);
+		
 
-		width = tex.extent().x;
-		height = tex.extent().y;
-		mipLevel = tex.levels();
-		format = (VkFormat)tex.format();
-		size = tex.size();
-
-		imageData = tex.data();
-
-		return Texture(tex, device, imageData, width, height,
-			mipLevel, 1, size,
-			(VkImageType)type, format, allocator);
+		return Texture(device, image, width, height, size,
+			mipLevel, 1, (VkImageType)type, format, allocator);
 	}
 }

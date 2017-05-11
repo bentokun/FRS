@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Rules.h"
-#include <fstream>
 
 #ifdef _WIN32
 #ifdef FRSV_EXPORTS
